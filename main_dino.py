@@ -371,11 +371,10 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
 
         # segmentation SSL
         # convert inputs to PIL RGB image in BW
-        inputs_as_pil_rgb = inputs
-        images = inputs_as_pil_rgb
+        images = inputs
         segmaps = [sm.cuda(non_blocking=True) for sm in segmaps]
         weights = [w.cuda(non_blocking=True) for w in weights]
-        batch_size = images.shape[0]
+        batch_size = len(images)
 
 
 
