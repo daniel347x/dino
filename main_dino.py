@@ -570,6 +570,10 @@ class DataAugmentationDINO(object):
 
         # WARNING: RANDOM HORIZONTAL FLIP has been LOST from flip_and_color_jitter
 
+        h, w = self.target_img_size[0], self.target_img_size[1]
+        sz1 = (1, h,w)
+        sz3 = (3, h,w)
+
         if self.to_pil:
             # print(f'A: image.shape: {image.shape}, mean = {torch.mean(torch.abs(image))}')
             image = transforms.ToPILImage()(image).convert("RGB")
@@ -578,61 +582,70 @@ class DataAugmentationDINO(object):
 
         crop_params = transforms.RandomResizedCrop.get_params(image, scale=self.global_crops_scale, ratio=self.ratio)
         out = transforms.functional.crop(image, *crop_params)
+        out = F.interpolate(out, size=sz3)
         out=self.global_transfo1(out)
         crops.append(out)
         if image2 is not None:
             segmented_reconstructed = torch.tensor(())
             for idx, image_ in enumerate(image2):
                 image_ = transforms.functional.crop(image_.unsqueeze(0), *crop_params)
+                image_ = F.interpolate(image_, size=sz1)
                 segmented_reconstructed = torch.cat([segmented_reconstructed, image_])
             crops_seg.append(segmented_reconstructed)
         if image3 is not None:
             image_ = transforms.functional.crop(image3, *crop_params)
+            image_ = F.interpolate(image_, size=sz1)
             crops_seg_weights.append(image_)
 
         crop_params = transforms.RandomResizedCrop.get_params(image, scale=self.global_crops_scale, ratio=self.ratio)
         out = transforms.functional.crop(image, *crop_params)
+        out = F.interpolate(out, size=sz3)
         out=self.global_transfo2(out)
         crops.append(out)
         if image2 is not None:
             segmented_reconstructed = torch.tensor(())
             for idx, image_ in enumerate(image2):
                 image_ = transforms.functional.crop(image_.unsqueeze(0), *crop_params)
+                image_ = F.interpolate(image_, size=sz1)
                 segmented_reconstructed = torch.cat([segmented_reconstructed, image_])
             crops_seg.append(segmented_reconstructed)
         if image3 is not None:
             image_ = transforms.functional.crop(image3, *crop_params)
+            image_ = F.interpolate(image_, size=sz1)
             crops_seg_weights.append(image_)
 
         for _ in range(self.local_crops_number):
             crop_params = transforms.RandomResizedCrop.get_params(image, scale=self.global_crops_scale, ratio=self.ratio)
             out = transforms.functional.crop(image, *crop_params)
+            out = F.interpolate(out, size=sz3)
             out=self.local_transfo(out)
             crops.append(out)
             if image2 is not None:
                 segmented_reconstructed = torch.tensor(())
                 for idx, image_ in enumerate(image2):
                     image_ = transforms.functional.crop(image_.unsqueeze(0), *crop_params)
+                    image_ = F.interpolate(image_, size=sz1)
                     segmented_reconstructed = torch.cat([segmented_reconstructed, image_])
                 crops_seg.append(segmented_reconstructed)
             if image3 is not None:
                 image_ = transforms.functional.crop(image3, *crop_params)
+                image_ = F.interpolate(image_, size=sz1)
                 crops_seg_weights.append(image_)
 
         ######################################################
         # CONVERSION TO TENSOR via transforms SWAPS CWH to CHW
         ######################################################
 
-        if self.target_img_size is not None:
-            for i, crop in enumerate(crops):
-                if crop.size(-2) <= 255:
-                    print(f'{i}: crop.shape: {crop.shape}')
-            for i, crop_seg in enumerate(crops_seg):
-                if crop_seg.size(-2) <= 255:
-                    print(f'{i}: crop_seg.shape: {crop_seg.shape}')
-            for i, crop_seg_weight in enumerate(crops_seg_weights):
-                if crop_seg_weight.size(-2) <= 255:
-                    print(f'{i}: crop_seg_weight.shape: {crop_seg_weight.shape}')
+        # if self.target_img_size is not None:
+        #     for i, crop in enumerate(crops):
+        #         if crop.size(-2) <= 255:
+        #             print(f'{i}: crop.shape: {crop.shape}')
+        #     for i, crop_seg in enumerate(crops_seg):
+        #         if crop_seg.size(-2) <= 255:
+        #             print(f'{i}: crop_seg.shape: {crop_seg.shape}')
+        #     for i, crop_seg_weight in enumerate(crops_seg_weights):
+        #         if crop_seg_weight.size(-2) <= 255:
+        #             print(f'{i}: crop_seg_weight.shape: {crop_seg_weight.shape}')
 
         if image2 is not None:
             assert image3 is not None
