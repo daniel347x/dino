@@ -169,6 +169,7 @@ def train_dino(args):
         args.global_crops_scale,
         args.local_crops_scale,
         args.local_crops_number,
+        to_pil=args.inc_segmentation,
     )
 
 
