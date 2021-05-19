@@ -515,8 +515,9 @@ class DINOLoss(nn.Module):
 
 
 class DataAugmentationDINO(object):
-    def __init__(self, global_crops_scale, local_crops_scale, local_crops_number):
+    def __init__(self, global_crops_scale, local_crops_scale, local_crops_number, to_pil=False):
         self.ratio = (0.75, 1.3333333333333333)
+        self.to_pil = to_pil
         flip_and_color_jitter = transforms.Compose([
             # transforms.RandomHorizontalFlip(p=0.5),
             transforms.RandomApply(
@@ -568,6 +569,10 @@ class DataAugmentationDINO(object):
 
         # WARNING: RANDOM HORIZONTAL FLIP has been LOST from flip_and_color_jitter
 
+        if self.to_pil:
+            print(f'A: image.shape: {image.shape}, mean = {torch.mean(torch.abs(image))}')
+            image = transforms.ToPILImage()(image).convert("RGB")
+
         crop_params = transforms.RandomResizedCrop.get_params(image[0], scale=self.global_crops_scale, ratio=self.ratio)
         out = transforms.functional.crop(image, *crop_params)
         out=self.global_transfo1(out)
@@ -575,7 +580,7 @@ class DataAugmentationDINO(object):
         if image2 is not None:
             segmented_reconstructed = torch.tensor(())
             for idx, image in enumerate(image2):
-                image_ = transforms.functional.crop(image, *crop_params)
+                image = transforms.functional.crop(image, *crop_params)
                 segmented_reconstructed = torch.cat([segmented_reconstructed, image])
             crops_seg.append(segmented_reconstructed)
 
@@ -586,7 +591,7 @@ class DataAugmentationDINO(object):
         if image2 is not None:
             segmented_reconstructed = torch.tensor(())
             for idx, image in enumerate(image2):
-                image_ = transforms.functional.crop(image, *crop_params)
+                image = transforms.functional.crop(image, *crop_params)
                 segmented_reconstructed = torch.cat([segmented_reconstructed, image])
             crops_seg.append(segmented_reconstructed)
 
@@ -598,9 +603,13 @@ class DataAugmentationDINO(object):
             if image2 is not None:
                 segmented_reconstructed = torch.tensor(())
                 for idx, image in enumerate(image2):
-                    image_ = transforms.functional.crop(image, *crop_params)
+                    image = transforms.functional.crop(image, *crop_params)
                     segmented_reconstructed = torch.cat([segmented_reconstructed, image])
                 crops_seg.append(segmented_reconstructed)
+
+        if self.to_pil:
+            image = transforms.ToTensor()(image)
+            print(f'B: image.shape: {image.shape}, mean = {torch.mean(torch.abs(image))}')
 
         if image2 is not None:
             return crops, crops_seg
