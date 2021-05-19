@@ -596,13 +596,13 @@ class DataAugmentationDINO(object):
             segmented_reconstructed = torch.tensor(())
             for idx, image_ in enumerate(image2):
                 image_ = transforms.functional.crop(image_.unsqueeze(0), *crop_params)
-                image_ = transforms.ToTensor()(image_)
+                # image_ = transforms.ToTensor()(image_)
                 image_ = F.interpolate(image_.unsqueeze(0), size=sz1).squeeze(0)
                 segmented_reconstructed = torch.cat([segmented_reconstructed, image_])
             crops_seg.append(segmented_reconstructed)
         if image3 is not None:
             image_ = transforms.functional.crop(image3, *crop_params)
-            image_ = transforms.ToTensor()(image_)
+            # image_ = transforms.ToTensor()(image_)
             image_ = F.interpolate(image_.unsqueeze(0), size=sz1).squeeze(0)
             crops_seg_weights.append(image_)
 
@@ -615,13 +615,13 @@ class DataAugmentationDINO(object):
             segmented_reconstructed = torch.tensor(())
             for idx, image_ in enumerate(image2):
                 image_ = transforms.functional.crop(image_.unsqueeze(0), *crop_params)
-                image_ = transforms.ToTensor()(image_)
+                # image_ = transforms.ToTensor()(image_)
                 image_ = F.interpolate(image_.unsqueeze(0), size=sz1).squeeze(0)
                 segmented_reconstructed = torch.cat([segmented_reconstructed, image_])
             crops_seg.append(segmented_reconstructed)
         if image3 is not None:
             image_ = transforms.functional.crop(image3, *crop_params)
-            image_ = transforms.ToTensor()(image_)
+            # image_ = transforms.ToTensor()(image_)
             image_ = F.interpolate(image_.unsqueeze(0), size=sz1).squeeze(0)
             crops_seg_weights.append(image_)
 
@@ -635,13 +635,13 @@ class DataAugmentationDINO(object):
                 segmented_reconstructed = torch.tensor(())
                 for idx, image_ in enumerate(image2):
                     image_ = transforms.functional.crop(image_.unsqueeze(0), *crop_params)
-                    image_ = transforms.ToTensor()(image_)
+                    # image_ = transforms.ToTensor()(image_)
                     image_ = F.interpolate(image_.unsqueeze(0), size=sz1).squeeze(0)
                     segmented_reconstructed = torch.cat([segmented_reconstructed, image_])
                 crops_seg.append(segmented_reconstructed)
             if image3 is not None:
                 image_ = transforms.functional.crop(image3, *crop_params)
-                image_ = transforms.ToTensor()(image_)
+                # image_ = transforms.ToTensor()(image_)
                 image_ = F.interpolate(image_.unsqueeze(0), size=sz1).squeeze(0)
                 crops_seg_weights.append(image_)
 
