@@ -1,11 +1,11 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -33,6 +33,34 @@ from torchvision import models as torchvision_models
 import utils
 import vision_transformer as vits
 from vision_transformer import DINOHead
+
+
+
+from deepink.segmentation.config import MCv16_nma_b as config
+from deepink.segmentation.data_loaders import PageLoader
+from deepink.core.utils import load_pickle
+
+DOCS = 'training'
+testing_dataset_path = config['train_files']
+training_dataset_path = config['test_files']
+anchors = config['anchors_file']
+assert DOCS in ['testing', 'training']
+
+load_path = testing_dataset_path if DOCS == 'testing' else training_dataset_path
+print(f'Loading {load_path}')
+docs = load_pickle(load_path)
+class_weights = torch.tensor(docs["class_weights"]).float()
+docs = docs['docs']
+anchors = load_pickle(anchors)
+anchors = anchors["anchors"]
+
+fscale = 1
+data_loader_args = {}
+
+
+
+
+
 
 torchvision_archs = sorted(name for name in torchvision_models.__dict__
     if name.islower() and not name.startswith("__")
@@ -124,6 +152,8 @@ def get_args_parser():
     parser.add_argument("--dist_url", default="env://", type=str, help="""url used to set up
         distributed training; see https://pytorch.org/docs/stable/distributed.html""")
     parser.add_argument("--local_rank", default=0, type=int, help="Please ignore and do not set this argument.")
+    parser.add_argument('--device', default="cuda", type=str, help='CUDA or CPU?')
+    parser.add_argument('--inc_segmentation', type=utils.bool_flag, default=False, help="""Whether or not to incorporate an SSL segmentation loss on the student""")
     return parser
 
 
@@ -140,17 +170,50 @@ def train_dino(args):
         args.local_crops_scale,
         args.local_crops_number,
     )
-    dataset = datasets.ImageFolder(args.data_path, transform=transform)
-    sampler = torch.utils.data.DistributedSampler(dataset, shuffle=True)
-    data_loader = torch.utils.data.DataLoader(
-        dataset,
-        sampler=sampler,
-        batch_size=args.batch_size_per_gpu,
-        num_workers=args.num_workers,
-        pin_memory=True,
-        drop_last=True,
-    )
-    print(f"Data loaded: there are {len(dataset)} images.")
+
+
+
+
+    if args.inc_segmentation:
+        ### WARNING! See https://pytorch.org/docs/stable/data.html
+        ### Not calling sampler.set_epoch() may mess up shuffling each epoch...
+        ### ...but maybe we already randomize ourselves?
+        data_loader = PageLoader(
+            docs,
+            anchors,
+            class_weights,
+            fscale,
+            config['seg_classes'],
+            config['box_classes'],
+            batch_size=2,
+            num_workers=10,
+            synthesis_v2=False,
+            df_nodes=None,
+            batch_augmentation_count=1,
+            **data_loader_args,
+        )
+    else:
+        dataset = datasets.ImageFolder(args.data_path, transform=transform)
+        sampler = torch.utils.data.DistributedSampler(dataset, shuffle=True)
+        data_loader = torch.utils.data.DataLoader(
+            dataset,
+            sampler=sampler,
+            batch_size=args.batch_size_per_gpu,
+            num_workers=args.num_workers,
+            pin_memory=True,
+            drop_last=True,
+        )
+        print(f"Data loaded: there are {len(dataset)} images.")
+
+
+
+
+
+
+
+
+
+
 
     # ============ building student and teacher networks ... ============
     # if the network is a vision transformer (i.e. deit_tiny, deit_small, vit_base)
@@ -158,6 +221,7 @@ def train_dino(args):
         student = vits.__dict__[args.arch](
             patch_size=args.patch_size,
             drop_path_rate=0.1,  # stochastic depth
+            include_segmap=True,
         )
         teacher = vits.__dict__[args.arch](patch_size=args.patch_size)
         embed_dim = student.embed_dim
@@ -167,7 +231,7 @@ def train_dino(args):
         teacher = torchvision_models.__dict__[args.arch]()
         embed_dim = student.fc.weight.shape[1]
     else:
-        print(f"Unknow architecture: {args.arch}")
+        print(f"Unknown architecture: {args.arch}")
 
     # multi-crop wrapper handles forward with inputs of different resolutions
     student = utils.MultiCropWrapper(student, DINOHead(
@@ -181,7 +245,8 @@ def train_dino(args):
         DINOHead(embed_dim, args.out_dim, args.use_bn_in_head),
     )
     # move networks to gpu
-    student, teacher = student.cuda(), teacher.cuda()
+    if args.device.lower == 'cuda':
+        student, teacher = student.cuda(), teacher.cuda()
     # synchronize batch norms (if any)
     if utils.has_batchnorms(student):
         student = nn.SyncBatchNorm.convert_sync_batchnorm(student)
@@ -257,7 +322,8 @@ def train_dino(args):
     start_time = time.time()
     print("Starting DINO training !")
     for epoch in range(start_epoch, args.epochs):
-        data_loader.sampler.set_epoch(epoch)
+        if args.inc_segmentation:
+            data_loader.sampler.set_epoch(epoch)
 
         # ============ training one epoch of DINO ... ============
         train_stats = train_one_epoch(student, teacher, teacher_without_ddp, dino_loss,
@@ -293,7 +359,22 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
                     fp16_scaler, args):
     metric_logger = utils.MetricLogger(delimiter="  ")
     header = 'Epoch: [{}/{}]'.format(epoch, args.epochs)
-    for it, (images, _) in enumerate(metric_logger.log_every(data_loader, 10, header)):
+    loss_func = torch.nn.MSELoss()
+
+    # for it, (images, _) in enumerate(metric_logger.log_every(data_loader, 10, header)):
+    for it, (inputs, segmaps, weights, boxes) in enumerate(metric_logger.log_every(data_loader, 10, header)):
+
+
+        # segmentation SSL
+        # convert inputs to PIL RGB image in BW
+        inputs_as_pil_rgb = inputs
+        images = inputs_as_pil_rgb
+        segmaps = [sm.cuda(non_blocking=True) for sm in segmaps]
+        weights = [w.cuda(non_blocking=True) for w in weights]
+        batch_size = images.shape[0]
+
+
+
         # update weight decay and learning rate according to their schedule
         it = len(data_loader) * epoch + it  # global training iteration
         for i, param_group in enumerate(optimizer.param_groups):
@@ -303,15 +384,39 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
 
         # move images to gpu
         images = [im.cuda(non_blocking=True) for im in images]
+
+
         # teacher and student forward passes + compute dino loss
         with torch.cuda.amp.autocast(fp16_scaler is not None):
             teacher_output = teacher(images[:2])  # only the 2 global views pass through the teacher
             student_output = student(images)
+
+
+            # segmentation SSL
+            # convert inputs to PIL RGB image in BW
+            student_output, segmaps_ = student_output
+
+
+
             loss = dino_loss(student_output, teacher_output, epoch)
 
         if not math.isfinite(loss.item()):
             print("Loss is {}, stopping training".format(loss.item()), force=True)
             sys.exit(1)
+
+
+
+        # segmentation SSL
+        lambda_seg = 1.
+        seg_loss = (
+            lambda_seg
+            * batch_size
+            * loss_func(weights * segmaps_, weights * segmaps)
+        )
+        loss += seg_loss
+
+
+
 
         # student update
         optimizer.zero_grad()
@@ -445,13 +550,41 @@ class DataAugmentationDINO(object):
             normalize,
         ])
 
-    def __call__(self, image):
+    def __call__(self, image, image2=None):
+
+        if image2 is not None:
+            n_channels_image = image.size(0)
+            image = torch.cat([image, image2], dim=0)
+
         crops = []
-        crops.append(self.global_transfo1(image))
-        crops.append(self.global_transfo2(image))
+        crops_seg = []
+
+        out1=self.global_transfo1(image)
+        if image2 is not None:
+            crops.append(out1[:n_channels_image])
+            crops_seg.append(out1[n_channels_image:])
+        else:
+            crops.append(out1)
+
+        out2 = self.global_transfo2(image)
+        if image2 is not None:
+            crops.append(out2[:n_channels_image])
+            crops_seg.append(out2[n_channels_image:])
+        else:
+            crops.append(out2)
+
         for _ in range(self.local_crops_number):
-            crops.append(self.local_transfo(image))
-        return crops
+            out_local = self.local_transfo(image)
+            if image2 is not None:
+                crops.append(out_local[:n_channels_image])
+                crops_seg.append(out_local[n_channels_image:])
+            else:
+                crops.append(out_local)
+
+        if image2 is not None:
+            return crops, crops_seg
+        else:
+            return crops
 
 
 if __name__ == '__main__':

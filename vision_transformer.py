@@ -1,11 +1,11 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -131,13 +131,60 @@ class PatchEmbed(nn.Module):
         return x
 
 
+def _conv_block(in_dim, out_dim, act_fn):
+    return nn.Sequential(
+        nn.Conv2d(in_dim, out_dim, kernel_size=3, stride=1, padding=1),
+        nn.BatchNorm2d(out_dim),
+        act_fn,
+    )
+
+
+def _conv_trans_block(in_dim, out_dim, act_fn):
+    return nn.Sequential(
+        nn.ConvTranspose2d(
+            in_dim, out_dim, kernel_size=3, stride=2, padding=1, output_padding=1
+        ),
+        act_fn,
+    )
+
+
+def _conv_block_2(in_dim, out_dim, act_fn):
+    return nn.Sequential(
+        _conv_block(in_dim, out_dim, act_fn),
+        nn.Conv2d(in_dim, out_dim, kernel_size=3, stride=1, padding=1),
+        nn.BatchNorm2d(out_dim),
+    )
+
+
+class _Conv_residual_conv_2(nn.Module):
+    def __init__(self, in_dim, out_dim, act_fn):
+        super(_Conv_residual_conv_2, self).__init__()
+        self.in_dim = in_dim
+        self.out_dim = out_dim
+        self.f_quant = torch.nn.quantized.FloatFunctional()
+        act_fn = act_fn
+
+        self.conv_1 = _conv_block(self.in_dim, self.out_dim, act_fn)
+        self.conv_2 = _conv_block_2(self.out_dim, self.out_dim, act_fn)
+        self.conv_3 = _conv_block(self.out_dim, self.out_dim, act_fn)
+
+    def forward(self, inputs):
+        conv_1 = self.conv_1(inputs)
+        conv_2 = self.conv_2(conv_1)
+        res = conv_1 + conv_2
+        conv_3 = self.conv_3(res)
+        return conv_3
+
+
 class VisionTransformer(nn.Module):
     """ Vision Transformer """
     def __init__(self, img_size=[224], patch_size=16, in_chans=3, num_classes=0, embed_dim=768, depth=12,
                  num_heads=12, mlp_ratio=4., qkv_bias=False, qk_scale=None, drop_rate=0., attn_drop_rate=0.,
-                 drop_path_rate=0., norm_layer=nn.LayerNorm, **kwargs):
+                 drop_path_rate=0., norm_layer=nn.LayerNorm, include_segmap=False, **kwargs):
         super().__init__()
         self.num_features = self.embed_dim = embed_dim
+
+        self.include_segmap = include_segmap
 
         self.patch_embed = PatchEmbed(
             img_size=img_size[0], patch_size=patch_size, in_chans=in_chans, embed_dim=embed_dim)
@@ -161,6 +208,14 @@ class VisionTransformer(nn.Module):
         trunc_normal_(self.pos_embed, std=.02)
         trunc_normal_(self.cls_token, std=.02)
         self.apply(self._init_weights)
+
+
+        # Also output patchwise segmaps
+        if self.include_segmap:
+            self.patch_size = patch_size
+            self.img_size = img_size[0]
+            self.out_dim = 4 # one per class, hard-coded for prototype
+            self.bridge = Mlp(embed_dim, hidden_features=embed_dim*4, out_features=patch_size*patch_size*self.out_dim, act_layer=nn.GELU, drop=0.1)
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
@@ -211,7 +266,16 @@ class VisionTransformer(nn.Module):
         for blk in self.blocks:
             x = blk(x)
         x = self.norm(x)
-        return x[:, 0]
+        vit_cls_output_logits = x[:, 0]
+
+
+        # Also output patchwise segmaps
+        if self.include_segmap:
+            bridge = self.bridge(x)
+            segmaps = x.reshape((bridge.size(0), self.out_dim, self.img_size, self.img_size))
+            return vit_cls_output_logits, segmaps
+        else:
+            return vit_cls_output_logits
 
     def get_last_selfattention(self, x):
         x = self.prepare_tokens(x)
