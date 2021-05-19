@@ -629,11 +629,11 @@ class DataAugmentationDINO(object):
             crops_seg_weights_ = []
             # Fucking DINO expects data in CWH, not CHW
             for crop in crops:
-                crops_.append(transforms.ToTensor()(crop).permute(0,2,1))
+                crops_.append(crop.permute(0,2,1))
             for crop_seg in crops_seg:
-                crops_seg_.append(transforms.ToTensor()(crop_seg).permute(0,2,1))
+                crops_seg_.append(crop_seg.permute(0,2,1))
             for crop_seg_weight in crops_seg_weights:
-                crops_seg_weights_.append(transforms.ToTensor()(crop_seg_weight).permute(0,2,1))
+                crops_seg_weights_.append(crop_seg_weight.permute(0,2,1))
             crops = crops_
             crops_seg = crops_seg_
             crops_seg_weights = crops_seg_weights_
