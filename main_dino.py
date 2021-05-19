@@ -619,24 +619,13 @@ class DataAugmentationDINO(object):
                 image_ = transforms.functional.crop(image3, *crop_params)
                 crops_seg_weights.append(image_)
 
-        # if self.to_pil:
-        #     crops_ = []
-        #     crops_seg_ = []
-        #     crops_seg_weights_ = []
-
-        #     # Fucking DINO expects data in CWH, not CHW
-
-        #     for crop in crops:
-        #         crops_.append(crop.permute(0,2,1))
-        #     for crop_seg in crops_seg:
-        #         crops_seg_.append(crop_seg.permute(0,2,1))
-        #     for crop_seg_weight in crops_seg_weights:
-        #         crops_seg_weights_.append(crop_seg_weight.permute(0,2,1))
-        #     crops = crops_
-        #     crops_seg = crops_seg_
-        #     crops_seg_weights = crops_seg_weights_
-
-        #     # print(f'B: image.shape: {image.shape}, mean = {torch.mean(torch.abs(image))}')
+        if self.to_pil:
+            for i, crop in enumerate(crops):
+                print(f'{i}: crop.shape: {crop.shape}')
+            for i, crop_seg in enumerate(crops_seg):
+                print(f'{i}: crop_seg.shape: {crop_seg.shape}')
+            for i, crop_seg_weight in enumerate(crops_seg_weights):
+                print(f'{i}: crop_seg_weight.shape: {crop_seg_weight.shape}')
 
 
         # CONVERSION TO TENSOR via transforms SWAPS CWH to CHW
