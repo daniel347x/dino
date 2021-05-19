@@ -182,7 +182,7 @@ class _Conv_residual_conv_2(nn.Module):
 
 class VisionTransformer(nn.Module):
     """ Vision Transformer """
-    def __init__(self, img_size=[224,192], patch_size=16, in_chans=3, num_classes=0, embed_dim=768, depth=12,
+    def __init__(self, img_size=[256,192], patch_size=16, in_chans=3, num_classes=0, embed_dim=768, depth=12,
                  num_heads=12, mlp_ratio=4., qkv_bias=False, qk_scale=None, drop_rate=0., attn_drop_rate=0.,
                  drop_path_rate=0., norm_layer=nn.LayerNorm, include_segmap=False, use_segmap=False, **kwargs):
         super().__init__()
