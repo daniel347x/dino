@@ -272,9 +272,9 @@ class VisionTransformer(nn.Module):
 
         # Also output patchwise segmaps
         if self.use_segmap:
-            print(f'x.shape: {x.shape}')
+            # print(f'x.shape: {x.shape}')
             bridge = self.bridge(x[:, 1:, :])
-            print(f'bridge.shape: {bridge.shape}')
+            # print(f'bridge.shape: {bridge.shape}')
             segmaps = bridge.reshape((bridge.size(0), self.out_dim, self.img_size, self.img_size))
             return vit_cls_output_logits, segmaps
         else:
@@ -355,8 +355,11 @@ class DINOHead(nn.Module):
 
     def forward(self, x):
         if self.use_segmap:
-            x = x[0]
+            x, segmaps = x
         x = self.mlp(x)
         x = nn.functional.normalize(x, dim=-1, p=2)
         x = self.last_layer(x)
-        return x
+        if self.use_segmap:
+            return x, segmaps
+        else:
+            return x
