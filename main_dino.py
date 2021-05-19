@@ -625,13 +625,13 @@ class DataAugmentationDINO(object):
 
         if self.target_img_size is not None:
             for i, crop in enumerate(crops):
-                if crop.size(-2) < 255:
+                if crop.size(-2) <= 255:
                     print(f'{i}: crop.shape: {crop.shape}')
             for i, crop_seg in enumerate(crops_seg):
-                if crop_seg.size(-2) < 255:
+                if crop_seg.size(-2) <= 255:
                     print(f'{i}: crop_seg.shape: {crop_seg.shape}')
             for i, crop_seg_weight in enumerate(crops_seg_weights):
-                if crop_seg_weight.size(-2) < 255:
+                if crop_seg_weight.size(-2) <= 255:
                     print(f'{i}: crop_seg_weight.shape: {crop_seg_weight.shape}')
 
         if image2 is not None:
