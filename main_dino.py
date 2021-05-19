@@ -170,6 +170,7 @@ def train_dino(args):
         args.local_crops_scale,
         args.local_crops_number,
         to_pil=args.inc_segmentation,
+        target_img_size=224,
     )
 
 
