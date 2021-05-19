@@ -574,7 +574,7 @@ class DataAugmentationDINO(object):
             print(f'A: image.shape: {image.shape}, mean = {torch.mean(torch.abs(image))}')
             image = transforms.ToPILImage()(image).convert("RGB")
 
-        crop_params = transforms.RandomResizedCrop.get_params(image[0], scale=self.global_crops_scale, ratio=self.ratio)
+        crop_params = transforms.RandomResizedCrop.get_params(image, scale=self.global_crops_scale, ratio=self.ratio)
         out = transforms.functional.crop(image, *crop_params)
         out=self.global_transfo1(out)
         crops.append(out)
@@ -585,7 +585,7 @@ class DataAugmentationDINO(object):
                 segmented_reconstructed = torch.cat([segmented_reconstructed, image])
             crops_seg.append(segmented_reconstructed)
 
-        crop_params = transforms.RandomResizedCrop.get_params(image[0], scale=self.global_crops_scale, ratio=self.ratio)
+        crop_params = transforms.RandomResizedCrop.get_params(image, scale=self.global_crops_scale, ratio=self.ratio)
         out = transforms.functional.crop(image, *crop_params)
         out=self.global_transfo2(out)
         crops.append(out)
@@ -597,7 +597,7 @@ class DataAugmentationDINO(object):
             crops_seg.append(segmented_reconstructed)
 
         for _ in range(self.local_crops_number):
-            crop_params = transforms.RandomResizedCrop.get_params(image[0], scale=self.global_crops_scale, ratio=self.ratio)
+            crop_params = transforms.RandomResizedCrop.get_params(image, scale=self.global_crops_scale, ratio=self.ratio)
             out = transforms.functional.crop(image, *crop_params)
             out=self.local_transfo(out)
             crops.append(out)
