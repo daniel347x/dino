@@ -170,7 +170,7 @@ def train_dino(args):
         args.local_crops_scale,
         args.local_crops_number,
         to_pil=args.inc_segmentation,
-        target_img_size=224,
+        target_img_size=None,
     )
 
 
@@ -564,10 +564,6 @@ class DataAugmentationDINO(object):
 
     def __call__(self, image, image2=None, image3=None):
 
-        # if image2 is not None:
-        #     n_channels_image = image.size(0)
-        #     image = torch.cat([image, image2], dim=0)
-
         crops = []
         crops_seg = []
         crops_seg_weights = []
@@ -577,8 +573,8 @@ class DataAugmentationDINO(object):
         if self.to_pil:
             # print(f'A: image.shape: {image.shape}, mean = {torch.mean(torch.abs(image))}')
             image = transforms.ToPILImage()(image).convert("RGB")
-            if self.target_img_size is not None:
-                image = image.resize((self.target_img_size, self.target_img_size))
+            # if self.target_img_size is not None:
+            #     image = image.resize((self.target_img_size, self.target_img_size))
 
         crop_params = transforms.RandomResizedCrop.get_params(image, scale=self.global_crops_scale, ratio=self.ratio)
         out = transforms.functional.crop(image, *crop_params)
@@ -623,22 +619,27 @@ class DataAugmentationDINO(object):
                 image_ = transforms.functional.crop(image3, *crop_params)
                 crops_seg_weights.append(image_)
 
-        if self.to_pil:
-            crops_ = []
-            crops_seg_ = []
-            crops_seg_weights_ = []
-            # Fucking DINO expects data in CWH, not CHW
-            for crop in crops:
-                crops_.append(crop.permute(0,2,1))
-            for crop_seg in crops_seg:
-                crops_seg_.append(crop_seg.permute(0,2,1))
-            for crop_seg_weight in crops_seg_weights:
-                crops_seg_weights_.append(crop_seg_weight.permute(0,2,1))
-            crops = crops_
-            crops_seg = crops_seg_
-            crops_seg_weights = crops_seg_weights_
+        # if self.to_pil:
+        #     crops_ = []
+        #     crops_seg_ = []
+        #     crops_seg_weights_ = []
 
-            # print(f'B: image.shape: {image.shape}, mean = {torch.mean(torch.abs(image))}')
+        #     # Fucking DINO expects data in CWH, not CHW
+
+        #     for crop in crops:
+        #         crops_.append(crop.permute(0,2,1))
+        #     for crop_seg in crops_seg:
+        #         crops_seg_.append(crop_seg.permute(0,2,1))
+        #     for crop_seg_weight in crops_seg_weights:
+        #         crops_seg_weights_.append(crop_seg_weight.permute(0,2,1))
+        #     crops = crops_
+        #     crops_seg = crops_seg_
+        #     crops_seg_weights = crops_seg_weights_
+
+        #     # print(f'B: image.shape: {image.shape}, mean = {torch.mean(torch.abs(image))}')
+
+
+        # CONVERSION TO TENSOR via transforms SWAPS CWH to CHW
 
         if image2 is not None:
             assert image3 is not None
