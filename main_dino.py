@@ -515,6 +515,7 @@ class DINOLoss(nn.Module):
 
 class DataAugmentationDINO(object):
     def __init__(self, global_crops_scale, local_crops_scale, local_crops_number):
+        self.ratio = (0.75, 1.3333333333333333)
         flip_and_color_jitter = transforms.Compose([
             # transforms.RandomHorizontalFlip(p=0.5),
             transforms.RandomApply(
@@ -566,39 +567,39 @@ class DataAugmentationDINO(object):
 
         # WARNING: RANDOM HORIZONTAL FLIP has been LOST from flip_and_color_jitter
 
-        crop_params = transforms.RandomResizedCrop.get_params(image[0], scale=self.global_crops_scale)
+        crop_params = transforms.RandomResizedCrop.get_params(image[0], scale=self.global_crops_scale, ratio=self.ratio)
         segmented_reconstructed = torch.tensor(())
         for idx, image_ in enumerate(image):
             image_ = transforms.functional.crop(image_, *crop_params)
-            out1=self.global_transfo1(image_)
             if idx > 0:
-                segmented_reconstructed = torch.cat([segmented_reconstructed, out1])
+                segmented_reconstructed = torch.cat([segmented_reconstructed, image_])
             else:
+                out1=self.global_transfo1(image_)
                 crops.append(out1)
         if image2 is not None:
             crops_seg.append(segmented_reconstructed)
 
-        crop_params = transforms.RandomResizedCrop.get_params(image[0], scale=self.global_crops_scale)
+        crop_params = transforms.RandomResizedCrop.get_params(image[0], scale=self.global_crops_scale, ratio=self.ratio)
         segmented_reconstructed = torch.tensor(())
         for idx, image_ in enumerate(image):
             image_ = transforms.functional.crop(image_, *crop_params)
-            out1=self.global_transfo2(image_)
             if idx > 0:
-                segmented_reconstructed = torch.cat([segmented_reconstructed, out1])
+                segmented_reconstructed = torch.cat([segmented_reconstructed, image_])
             else:
+                out1=self.global_transfo2(image_)
                 crops.append(out1)
         if image2 is not None:
             crops_seg.append(segmented_reconstructed)
 
         for _ in range(self.local_crops_number):
-            crop_params = transforms.RandomResizedCrop.get_params(image[0], scale=self.global_crops_scale)
+            crop_params = transforms.RandomResizedCrop.get_params(image[0], scale=self.global_crops_scale, ratio=self.ratio)
             segmented_reconstructed = torch.tensor(())
             for idx, image_ in enumerate(image):
                 image_ = transforms.functional.crop(image_, *crop_params)
-                out1=self.local_transfo(image_)
                 if idx > 0:
-                    segmented_reconstructed = torch.cat([segmented_reconstructed, out1])
+                    segmented_reconstructed = torch.cat([segmented_reconstructed, image_])
                 else:
+                    out1=self.local_transfo(image_)
                     crops.append(out1)
             if image2 is not None:
                 crops_seg.append(segmented_reconstructed)
