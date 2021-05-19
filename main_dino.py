@@ -590,25 +590,25 @@ class DataAugmentationDINO(object):
         # print(f'***********************************************\ntype(out): {type(out)}\n***********************************************')
         out = self.global_transfo1(out)
         # print(f'***********************************************\nout.shape: {out.shape}\n***********************************************')
-        out = F.interpolate(out, size=sz3)
+        out = F.interpolate(out.unsqueeze(0), size=sz3).squeeze(0)
         crops.append(out)
         if image2 is not None:
             segmented_reconstructed = torch.tensor(())
             for idx, image_ in enumerate(image2):
                 image_ = transforms.functional.crop(image_.unsqueeze(0), *crop_params)
                 image_ = transforms.ToTensor()(image_)
-                image_ = F.interpolate(image_, size=sz1)
+                image_ = F.interpolate(image_.unsqueeze(0), size=sz1).squeeze(0)
                 segmented_reconstructed = torch.cat([segmented_reconstructed, image_])
             crops_seg.append(segmented_reconstructed)
         if image3 is not None:
             image_ = transforms.functional.crop(image3, *crop_params)
             image_ = transforms.ToTensor()(image_)
-            image_ = F.interpolate(image_, size=sz1)
+            image_ = F.interpolate(image_.unsqueeze(0), size=sz1).squeeze(0)
             crops_seg_weights.append(image_)
 
         crop_params = transforms.RandomResizedCrop.get_params(image, scale=self.global_crops_scale, ratio=self.ratio)
         out = transforms.functional.crop(image, *crop_params)
-        out = F.interpolate(out, size=sz3)
+        out = F.interpolate(out.unsqueeze(0), size=sz3).squeeze(0)
         out=self.global_transfo2(out)
         crops.append(out)
         if image2 is not None:
@@ -616,19 +616,19 @@ class DataAugmentationDINO(object):
             for idx, image_ in enumerate(image2):
                 image_ = transforms.functional.crop(image_.unsqueeze(0), *crop_params)
                 image_ = transforms.ToTensor()(image_)
-                image_ = F.interpolate(image_, size=sz1)
+                image_ = F.interpolate(image_.unsqueeze(0), size=sz1).squeeze(0)
                 segmented_reconstructed = torch.cat([segmented_reconstructed, image_])
             crops_seg.append(segmented_reconstructed)
         if image3 is not None:
             image_ = transforms.functional.crop(image3, *crop_params)
             image_ = transforms.ToTensor()(image_)
-            image_ = F.interpolate(image_, size=sz1)
+            image_ = F.interpolate(image_.unsqueeze(0), size=sz1).squeeze(0)
             crops_seg_weights.append(image_)
 
         for _ in range(self.local_crops_number):
             crop_params = transforms.RandomResizedCrop.get_params(image, scale=self.global_crops_scale, ratio=self.ratio)
             out = transforms.functional.crop(image, *crop_params)
-            out = F.interpolate(out, size=sz3)
+            out = F.interpolate(out.unsqueeze(0), size=sz3).squeeze(0)
             out=self.local_transfo(out)
             crops.append(out)
             if image2 is not None:
@@ -636,13 +636,13 @@ class DataAugmentationDINO(object):
                 for idx, image_ in enumerate(image2):
                     image_ = transforms.functional.crop(image_.unsqueeze(0), *crop_params)
                     image_ = transforms.ToTensor()(image_)
-                    image_ = F.interpolate(image_, size=sz1)
+                    image_ = F.interpolate(image_.unsqueeze(0), size=sz1).squeeze(0)
                     segmented_reconstructed = torch.cat([segmented_reconstructed, image_])
                 crops_seg.append(segmented_reconstructed)
             if image3 is not None:
                 image_ = transforms.functional.crop(image3, *crop_params)
                 image_ = transforms.ToTensor()(image_)
-                image_ = F.interpolate(image_, size=sz1)
+                image_ = F.interpolate(image_.unsqueeze(0), size=sz1).squeeze(0)
                 crops_seg_weights.append(image_)
 
         ######################################################
