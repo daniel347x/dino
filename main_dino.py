@@ -378,7 +378,7 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
             weights = [w.cuda(non_blocking=True) for w in weights]
         else:
             images, _ = data
-            assert False, f'len(images): {len(images)}'
+            assert False, f'len(images): {len(images)}\nlen(images[0]): {len(images[0])}\nlen(images[1]): {len(images[1])}'
 
         batch_size = len(images)
 
