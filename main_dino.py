@@ -365,18 +365,23 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
     header = 'Epoch: [{}/{}]'.format(epoch, args.epochs)
     loss_func = torch.nn.MSELoss()
 
+    for it, data in enumerate(metric_logger.log_every(data_loader, 10, header)):
     # for it, (images, _) in enumerate(metric_logger.log_every(data_loader, 10, header)):
-    for it, (inputs, segmaps, weights, boxes) in enumerate(metric_logger.log_every(data_loader, 10, header)):
+    # for it, (inputs, segmaps, weights, boxes) in enumerate(metric_logger.log_every(data_loader, 10, header)):
 
+        if args.inc_segmentation:
+            # segmentation SSL
+            # convert inputs to PIL RGB image in BW
+            inputs, segmaps, weights, boxes = data
+            images = inputs
+            segmaps = [sm.cuda(non_blocking=True) for sm in segmaps]
+            weights = [w.cuda(non_blocking=True) for w in weights]
+        else:
+            images, _ = data
+            print(f'len(images): {len(images)}')
+            assert False
 
-        # segmentation SSL
-        # convert inputs to PIL RGB image in BW
-        images = inputs
-        segmaps = [sm.cuda(non_blocking=True) for sm in segmaps]
-        weights = [w.cuda(non_blocking=True) for w in weights]
         batch_size = len(images)
-
-
 
         # update weight decay and learning rate according to their schedule
         it = len(data_loader) * epoch + it  # global training iteration
