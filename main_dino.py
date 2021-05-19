@@ -587,7 +587,7 @@ class DataAugmentationDINO(object):
         if image2 is not None:
             segmented_reconstructed = torch.tensor(())
             for idx, image_ in enumerate(image2):
-                image_ = transforms.functional.crop(image_, *crop_params)
+                image_ = transforms.functional.crop(image_.unsqueeze(0), *crop_params)
                 segmented_reconstructed = torch.cat([segmented_reconstructed, image_])
             crops_seg.append(segmented_reconstructed)
         if image3 is not None:
@@ -601,7 +601,7 @@ class DataAugmentationDINO(object):
         if image2 is not None:
             segmented_reconstructed = torch.tensor(())
             for idx, image_ in enumerate(image2):
-                image_ = transforms.functional.crop(image_, *crop_params)
+                image_ = transforms.functional.crop(image_.unsqueeze(0), *crop_params)
                 segmented_reconstructed = torch.cat([segmented_reconstructed, image_])
             crops_seg.append(segmented_reconstructed)
         if image3 is not None:
@@ -616,7 +616,7 @@ class DataAugmentationDINO(object):
             if image2 is not None:
                 segmented_reconstructed = torch.tensor(())
                 for idx, image_ in enumerate(image2):
-                    image_ = transforms.functional.crop(image_, *crop_params)
+                    image_ = transforms.functional.crop(image_.unsqueeze(0), *crop_params)
                     segmented_reconstructed = torch.cat([segmented_reconstructed, image_])
                 crops_seg.append(segmented_reconstructed)
             if image3 is not None:
