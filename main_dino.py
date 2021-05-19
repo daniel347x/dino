@@ -222,10 +222,10 @@ def train_dino(args):
         student = vits.__dict__[args.arch](
             patch_size=args.patch_size,
             drop_path_rate=0.1,  # stochastic depth
-            include_segmap=True,
-            use_segmap=True,
+            include_segmap=args.inc_segmentation,
+            use_segmap=args.inc_segmentation,
         )
-        teacher = vits.__dict__[args.arch](patch_size=args.patch_size, include_segmap=True, use_segmap=False)
+        teacher = vits.__dict__[args.arch](patch_size=args.patch_size, include_segmap=args.inc_segmentation, use_segmap=False)
         embed_dim = student.embed_dim
     # otherwise, we check if the architecture is in torchvision models
     elif args.arch in torchvision_models.__dict__.keys():
@@ -241,6 +241,7 @@ def train_dino(args):
         args.out_dim,
         use_bn=args.use_bn_in_head,
         norm_last_layer=args.norm_last_layer,
+        use_segmap=args.inc_segmentation,
     ))
     teacher = utils.MultiCropWrapper(
         teacher,
