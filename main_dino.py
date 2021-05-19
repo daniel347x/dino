@@ -585,7 +585,8 @@ class DataAugmentationDINO(object):
         # PIL image -
         # Conversion to tensor happens as you can see in the actual transform sequence above
         # print(f'***********************************************\ntype(out): {type(out)}\n***********************************************')
-        out=self.global_transfo1(out)
+        out = self.global_transfo1(out)
+        print(f'***********************************************\nout.shape: {out.shape}\n***********************************************')
         out = F.interpolate(out, size=sz3)
         crops.append(out)
         if image2 is not None:
