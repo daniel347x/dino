@@ -372,7 +372,7 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
             images = inputs
             segmaps = [sm.cuda(non_blocking=True) for sm in segmaps]
             weights = [w.cuda(non_blocking=True) for w in weights]
-            assert False, f'A: len(images): {len(images)}\nlen(images[0]): {len(images[0])}\nlen(images[1]): {len(images[1])}'
+            assert False, f'A1: len(segmaps): {len(segmaps)}\nlen(segmaps[0]): {len(segmaps[0])}\nlen(segmaps[1]): {len(segmaps[1])}'
         else:
             images, _ = data
             # Collator is smart enough to return an extra dimension BEFORE the batch dimension when the dataset returns a list of items for one sample
@@ -560,7 +560,7 @@ class DataAugmentationDINO(object):
         self.global_crops_scale = global_crops_scale
         self.local_crops_scale = local_crops_scale
 
-    def __call__(self, image, image2=None):
+    def __call__(self, image, image2=None, image3=None):
 
         # if image2 is not None:
         #     n_channels_image = image.size(0)
@@ -568,11 +568,12 @@ class DataAugmentationDINO(object):
 
         crops = []
         crops_seg = []
+        crops_seg_weights = []
 
         # WARNING: RANDOM HORIZONTAL FLIP has been LOST from flip_and_color_jitter
 
         if self.to_pil:
-            print(f'A: image.shape: {image.shape}, mean = {torch.mean(torch.abs(image))}')
+            # print(f'A: image.shape: {image.shape}, mean = {torch.mean(torch.abs(image))}')
             image = transforms.ToPILImage()(image).convert("RGB")
 
         crop_params = transforms.RandomResizedCrop.get_params(image, scale=self.global_crops_scale, ratio=self.ratio)
@@ -585,6 +586,9 @@ class DataAugmentationDINO(object):
                 image_ = transforms.functional.crop(image_, *crop_params)
                 segmented_reconstructed = torch.cat([segmented_reconstructed, image_])
             crops_seg.append(segmented_reconstructed)
+        if image3 is not None:
+            image_ = transforms.functional.crop(image3, *crop_params)
+            crops_seg_weights.append(image_)
 
         crop_params = transforms.RandomResizedCrop.get_params(image, scale=self.global_crops_scale, ratio=self.ratio)
         out = transforms.functional.crop(image, *crop_params)
@@ -596,6 +600,9 @@ class DataAugmentationDINO(object):
                 image_ = transforms.functional.crop(image_, *crop_params)
                 segmented_reconstructed = torch.cat([segmented_reconstructed, image_])
             crops_seg.append(segmented_reconstructed)
+        if image3 is not None:
+            image_ = transforms.functional.crop(image3, *crop_params)
+            crops_seg_weights.append(image_)
 
         for _ in range(self.local_crops_number):
             crop_params = transforms.RandomResizedCrop.get_params(image, scale=self.global_crops_scale, ratio=self.ratio)
@@ -608,13 +615,17 @@ class DataAugmentationDINO(object):
                     image_ = transforms.functional.crop(image_, *crop_params)
                     segmented_reconstructed = torch.cat([segmented_reconstructed, image_])
                 crops_seg.append(segmented_reconstructed)
+            if image3 is not None:
+                image_ = transforms.functional.crop(image3, *crop_params)
+                crops_seg_weights.append(image_)
 
         if self.to_pil:
             image = transforms.ToTensor()(image)
-            print(f'B: image.shape: {image.shape}, mean = {torch.mean(torch.abs(image))}')
+            # print(f'B: image.shape: {image.shape}, mean = {torch.mean(torch.abs(image))}')
 
         if image2 is not None:
-            return crops, crops_seg
+            assert image3 is not None
+            return crops, crops_seg, crops_seg_weights
         else:
             return crops
 
