@@ -118,10 +118,14 @@ class PatchEmbed(nn.Module):
     """
     def __init__(self, img_size, patch_size=16, in_chans=3, embed_dim=768):
         super().__init__()
-        num_patches = (img_size[0] // patch_size) * (img_size[1] // patch_size)
+        num_patches_h = img_size[0] // patch_size
+        num_patches_w = img_size[1] // patch_size
+        num_patches = num_patches_h * num_patches_w
         self.img_size = img_size
         self.patch_size = patch_size
         self.num_patches = num_patches
+        self.num_patches_h = num_patches_h
+        self.num_patches_w = num_patches_w
 
         self.proj = nn.Conv2d(in_chans, embed_dim, kernel_size=patch_size, stride=patch_size)
 
@@ -190,6 +194,9 @@ class VisionTransformer(nn.Module):
         self.patch_embed = PatchEmbed(
             img_size=img_size, patch_size=patch_size, in_chans=in_chans, embed_dim=embed_dim)
         num_patches = self.patch_embed.num_patches
+        self.num_patches = num_patches
+        self.num_patches_h = self.patch_embed.num_patches_h
+        self.num_patches_w = self.patch_embed.num_patches_w
 
         self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
         self.pos_embed = nn.Parameter(torch.zeros(1, num_patches + 1, embed_dim))
@@ -241,8 +248,8 @@ class VisionTransformer(nn.Module):
         # see discussion at https://github.com/facebookresearch/dino/issues/8
         w0, h0 = w0 + 0.1, h0 + 0.1
         patch_pos_embed = nn.functional.interpolate(
-            patch_pos_embed.reshape(1, int(math.sqrt(N)), int(math.sqrt(N)), dim).permute(0, 3, 1, 2),
-            scale_factor=(w0 / math.sqrt(N), h0 / math.sqrt(N)),
+            patch_pos_embed.reshape(1, self.num_patches_h, self.num_patches_w, dim).permute(0, 3, 1, 2),
+            scale_factor=(w0 / self.num_patches_w, h0 / self.num_patches_h),
             mode='bicubic',
         )
         assert int(w0) == patch_pos_embed.shape[-2] and int(h0) == patch_pos_embed.shape[-1]
