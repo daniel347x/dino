@@ -273,7 +273,7 @@ class VisionTransformer(nn.Module):
         # Also output patchwise segmaps
         if self.use_segmap:
             bridge = self.bridge(x)
-            segmaps = x.reshape((bridge.size(0), self.out_dim, self.img_size, self.img_size))
+            segmaps = bridge.reshape((bridge.size(0), self.out_dim, self.img_size, self.img_size))
             return vit_cls_output_logits, segmaps
         else:
             return vit_cls_output_logits
