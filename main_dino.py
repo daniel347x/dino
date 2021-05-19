@@ -582,19 +582,23 @@ class DataAugmentationDINO(object):
 
         crop_params = transforms.RandomResizedCrop.get_params(image, scale=self.global_crops_scale, ratio=self.ratio)
         out = transforms.functional.crop(image, *crop_params)
-        print(f'***********************************************\ntype(out): {type(out)}\n***********************************************')
-        out = F.interpolate(out, size=sz3)
+        # PIL image -
+        # Conversion to tensor happens as you can see in the actual transform sequence above
+        # print(f'***********************************************\ntype(out): {type(out)}\n***********************************************')
         out=self.global_transfo1(out)
+        out = F.interpolate(out, size=sz3)
         crops.append(out)
         if image2 is not None:
             segmented_reconstructed = torch.tensor(())
             for idx, image_ in enumerate(image2):
                 image_ = transforms.functional.crop(image_.unsqueeze(0), *crop_params)
+                image_ = transforms.ToTensor()(image_)
                 image_ = F.interpolate(image_, size=sz1)
                 segmented_reconstructed = torch.cat([segmented_reconstructed, image_])
             crops_seg.append(segmented_reconstructed)
         if image3 is not None:
             image_ = transforms.functional.crop(image3, *crop_params)
+            image_ = transforms.ToTensor()(image_)
             image_ = F.interpolate(image_, size=sz1)
             crops_seg_weights.append(image_)
 
@@ -607,11 +611,13 @@ class DataAugmentationDINO(object):
             segmented_reconstructed = torch.tensor(())
             for idx, image_ in enumerate(image2):
                 image_ = transforms.functional.crop(image_.unsqueeze(0), *crop_params)
+                image_ = transforms.ToTensor()(image_)
                 image_ = F.interpolate(image_, size=sz1)
                 segmented_reconstructed = torch.cat([segmented_reconstructed, image_])
             crops_seg.append(segmented_reconstructed)
         if image3 is not None:
             image_ = transforms.functional.crop(image3, *crop_params)
+            image_ = transforms.ToTensor()(image_)
             image_ = F.interpolate(image_, size=sz1)
             crops_seg_weights.append(image_)
 
@@ -625,11 +631,13 @@ class DataAugmentationDINO(object):
                 segmented_reconstructed = torch.tensor(())
                 for idx, image_ in enumerate(image2):
                     image_ = transforms.functional.crop(image_.unsqueeze(0), *crop_params)
+                    image_ = transforms.ToTensor()(image_)
                     image_ = F.interpolate(image_, size=sz1)
                     segmented_reconstructed = torch.cat([segmented_reconstructed, image_])
                 crops_seg.append(segmented_reconstructed)
             if image3 is not None:
                 image_ = transforms.functional.crop(image3, *crop_params)
+                image_ = transforms.ToTensor()(image_)
                 image_ = F.interpolate(image_, size=sz1)
                 crops_seg_weights.append(image_)
 
