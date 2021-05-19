@@ -580,9 +580,9 @@ class DataAugmentationDINO(object):
         crops.append(out)
         if image2 is not None:
             segmented_reconstructed = torch.tensor(())
-            for idx, image in enumerate(image2):
-                image = transforms.functional.crop(image, *crop_params)
-                segmented_reconstructed = torch.cat([segmented_reconstructed, image])
+            for idx, image_ in enumerate(image2):
+                image_ = transforms.functional.crop(image_, *crop_params)
+                segmented_reconstructed = torch.cat([segmented_reconstructed, image_])
             crops_seg.append(segmented_reconstructed)
 
         crop_params = transforms.RandomResizedCrop.get_params(image, scale=self.global_crops_scale, ratio=self.ratio)
@@ -591,9 +591,9 @@ class DataAugmentationDINO(object):
         crops.append(out)
         if image2 is not None:
             segmented_reconstructed = torch.tensor(())
-            for idx, image in enumerate(image2):
-                image = transforms.functional.crop(image, *crop_params)
-                segmented_reconstructed = torch.cat([segmented_reconstructed, image])
+            for idx, image_ in enumerate(image2):
+                image_ = transforms.functional.crop(image_, *crop_params)
+                segmented_reconstructed = torch.cat([segmented_reconstructed, image_])
             crops_seg.append(segmented_reconstructed)
 
         for _ in range(self.local_crops_number):
@@ -603,9 +603,9 @@ class DataAugmentationDINO(object):
             crops.append(out)
             if image2 is not None:
                 segmented_reconstructed = torch.tensor(())
-                for idx, image in enumerate(image2):
-                    image = transforms.functional.crop(image, *crop_params)
-                    segmented_reconstructed = torch.cat([segmented_reconstructed, image])
+                for idx, image_ in enumerate(image2):
+                    image_ = transforms.functional.crop(image_, *crop_params)
+                    segmented_reconstructed = torch.cat([segmented_reconstructed, image_])
                 crops_seg.append(segmented_reconstructed)
 
         if self.to_pil:
