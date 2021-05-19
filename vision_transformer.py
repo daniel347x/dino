@@ -180,11 +180,12 @@ class VisionTransformer(nn.Module):
     """ Vision Transformer """
     def __init__(self, img_size=[224], patch_size=16, in_chans=3, num_classes=0, embed_dim=768, depth=12,
                  num_heads=12, mlp_ratio=4., qkv_bias=False, qk_scale=None, drop_rate=0., attn_drop_rate=0.,
-                 drop_path_rate=0., norm_layer=nn.LayerNorm, include_segmap=False, **kwargs):
+                 drop_path_rate=0., norm_layer=nn.LayerNorm, include_segmap=False, use_segmap=False, **kwargs):
         super().__init__()
         self.num_features = self.embed_dim = embed_dim
 
         self.include_segmap = include_segmap
+        self.use_segmap = use_segmap
 
         self.patch_embed = PatchEmbed(
             img_size=img_size[0], patch_size=patch_size, in_chans=in_chans, embed_dim=embed_dim)
@@ -270,12 +271,13 @@ class VisionTransformer(nn.Module):
 
 
         # Also output patchwise segmaps
-        if self.include_segmap:
+        if self.use_segmap:
             bridge = self.bridge(x)
             segmaps = x.reshape((bridge.size(0), self.out_dim, self.img_size, self.img_size))
             return vit_cls_output_logits, segmaps
         else:
             return vit_cls_output_logits
+
 
     def get_last_selfattention(self, x):
         x = self.prepare_tokens(x)

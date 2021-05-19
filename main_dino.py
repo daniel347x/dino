@@ -223,8 +223,9 @@ def train_dino(args):
             patch_size=args.patch_size,
             drop_path_rate=0.1,  # stochastic depth
             include_segmap=True,
+            use_segmap=True,
         )
-        teacher = vits.__dict__[args.arch](patch_size=args.patch_size)
+        teacher = vits.__dict__[args.arch](patch_size=args.patch_size, include_segmap=True, use_segmap=False)
         embed_dim = student.embed_dim
     # otherwise, we check if the architecture is in torchvision models
     elif args.arch in torchvision_models.__dict__.keys():
