@@ -116,9 +116,9 @@ class Block(nn.Module):
 class PatchEmbed(nn.Module):
     """ Image to Patch Embedding
     """
-    def __init__(self, img_size=224, patch_size=16, in_chans=3, embed_dim=768):
+    def __init__(self, img_size, patch_size=16, in_chans=3, embed_dim=768):
         super().__init__()
-        num_patches = (img_size // patch_size) * (img_size // patch_size)
+        num_patches = (img_size[0] // patch_size) * (img_size[1] // patch_size)
         self.img_size = img_size
         self.patch_size = patch_size
         self.num_patches = num_patches
@@ -178,7 +178,7 @@ class _Conv_residual_conv_2(nn.Module):
 
 class VisionTransformer(nn.Module):
     """ Vision Transformer """
-    def __init__(self, img_size=[224], patch_size=16, in_chans=3, num_classes=0, embed_dim=768, depth=12,
+    def __init__(self, img_size=[224,192], patch_size=16, in_chans=3, num_classes=0, embed_dim=768, depth=12,
                  num_heads=12, mlp_ratio=4., qkv_bias=False, qk_scale=None, drop_rate=0., attn_drop_rate=0.,
                  drop_path_rate=0., norm_layer=nn.LayerNorm, include_segmap=False, use_segmap=False, **kwargs):
         super().__init__()
@@ -188,7 +188,7 @@ class VisionTransformer(nn.Module):
         self.use_segmap = use_segmap
 
         self.patch_embed = PatchEmbed(
-            img_size=img_size[0], patch_size=patch_size, in_chans=in_chans, embed_dim=embed_dim)
+            img_size=img_size, patch_size=patch_size, in_chans=in_chans, embed_dim=embed_dim)
         num_patches = self.patch_embed.num_patches
 
         self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
@@ -214,7 +214,7 @@ class VisionTransformer(nn.Module):
         # Also output patchwise segmaps
         if self.include_segmap:
             self.patch_size = patch_size
-            self.img_size = img_size[0]
+            self.img_size = img_size
             self.out_dim = 4 # one per class, hard-coded for prototype
             self.bridge = Mlp(embed_dim, hidden_features=embed_dim*4, out_features=patch_size*patch_size*self.out_dim, act_layer=nn.GELU, drop=0.1)
 
@@ -275,7 +275,7 @@ class VisionTransformer(nn.Module):
             # print(f'x.shape: {x.shape}')
             bridge = self.bridge(x[:, 1:, :])
             # print(f'bridge.shape: {bridge.shape}')
-            segmaps = bridge.reshape((bridge.size(0), self.out_dim, self.img_size, self.img_size))
+            segmaps = bridge.reshape((bridge.size(0), self.out_dim, self.img_size[0], self.img_size[1]))
             return vit_cls_output_logits, segmaps
         else:
             return vit_cls_output_logits
