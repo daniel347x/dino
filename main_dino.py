@@ -370,8 +370,7 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
         if args.inc_segmentation:
             # segmentation SSL
             # convert inputs to PIL RGB image in BW
-            inputs, segmaps, weights, boxes = data
-            images = inputs
+            images, segmaps, weights, boxes = data
             segmaps = [sm.cuda(non_blocking=True) for sm in segmaps]
             weights = [w.cuda(non_blocking=True) for w in weights]
             # assert False, f'A1: len(segmaps): {len(segmaps)}\nlen(segmaps[0]): {len(segmaps[0])}\nlen(segmaps[1]): {len(segmaps[1])}'
@@ -379,8 +378,6 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
             images, _ = data
             # Collator is smart enough to return an extra dimension BEFORE the batch dimension when the dataset returns a list of items for one sample
             # assert False, f'B: len(images): {len(images)}\nlen(images[0]): {len(images[0])}\nlen(images[1]): {len(images[1])}'
-
-        batch_size = len(images)
 
         # update weight decay and learning rate according to their schedule
         it = len(data_loader) * epoch + it  # global training iteration
@@ -627,7 +624,20 @@ class DataAugmentationDINO(object):
                 crops_seg_weights.append(image_)
 
         if self.to_pil:
-            image = transforms.ToTensor()(image)
+            crops_ = []
+            crops_seg_ = []
+            crops_seg_weights_ = []
+            # Fucking DINO expects data in CWH, not CHW
+            for crop in crops:
+                crops_.append(transforms.ToTensor()(crop).permute(0,2,1))
+            for crop_seg in crops_seg:
+                crops_seg_.append(transforms.ToTensor()(crop_seg).permute(0,2,1))
+            for crop_seg_weight in crops_seg_weights:
+                crops_seg_weights_.append(transforms.ToTensor()(crop_seg_weight).permute(0,2,1))
+            crops = crops_
+            crops_seg = crops_seg_
+            crops_seg_weights = crops_seg_weights_
+
             # print(f'B: image.shape: {image.shape}, mean = {torch.mean(torch.abs(image))}')
 
         if image2 is not None:

@@ -248,7 +248,7 @@ class VisionTransformer(nn.Module):
         # see discussion at https://github.com/facebookresearch/dino/issues/8
         w0, h0 = w0 + 0.1, h0 + 0.1
         patch_pos_embed = nn.functional.interpolate(
-            patch_pos_embed.reshape(1, self.num_patches_h, self.num_patches_w, dim).permute(0, 3, 1, 2),
+            patch_pos_embed.reshape(1, self.num_patches_w, self.num_patches_h, dim).permute(0, 3, 1, 2),
             scale_factor=(w0 / self.num_patches_w, h0 / self.num_patches_h),
             mode='bicubic',
         )
