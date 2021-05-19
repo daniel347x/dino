@@ -518,7 +518,7 @@ class DINOLoss(nn.Module):
 
 
 class DataAugmentationDINO(object):
-    def __init__(self, global_crops_scale, local_crops_scale, local_crops_number, to_pil=False):
+    def __init__(self, global_crops_scale, local_crops_scale, local_crops_number, to_pil=False, target_img_size=None):
         self.ratio = (0.75, 1.3333333333333333)
         self.to_pil = to_pil
         flip_and_color_jitter = transforms.Compose([
@@ -560,6 +560,7 @@ class DataAugmentationDINO(object):
 
         self.global_crops_scale = global_crops_scale
         self.local_crops_scale = local_crops_scale
+        self.target_img_size = target_img_size
 
     def __call__(self, image, image2=None, image3=None):
 
@@ -576,6 +577,8 @@ class DataAugmentationDINO(object):
         if self.to_pil:
             # print(f'A: image.shape: {image.shape}, mean = {torch.mean(torch.abs(image))}')
             image = transforms.ToPILImage()(image).convert("RGB")
+            if self.target_img_size is not None:
+                image = image.resize((self.target_img_size, self.target_img_size))
 
         crop_params = transforms.RandomResizedCrop.get_params(image, scale=self.global_crops_scale, ratio=self.ratio)
         out = transforms.functional.crop(image, *crop_params)
