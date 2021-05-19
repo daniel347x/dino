@@ -191,6 +191,7 @@ def train_dino(args):
             df_nodes=None,
             batch_augmentation_count=1,
             dino_transform=transform,
+            augmentation=False,
             **data_loader_args,
         )
     else:
