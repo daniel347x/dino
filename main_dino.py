@@ -619,13 +619,13 @@ class DataAugmentationDINO(object):
                 image_ = transforms.functional.crop(image3, *crop_params)
                 crops_seg_weights.append(image_)
 
-        if self.to_pil:
-            for i, crop in enumerate(crops):
-                print(f'{i}: crop.shape: {crop.shape}')
-            for i, crop_seg in enumerate(crops_seg):
-                print(f'{i}: crop_seg.shape: {crop_seg.shape}')
-            for i, crop_seg_weight in enumerate(crops_seg_weights):
-                print(f'{i}: crop_seg_weight.shape: {crop_seg_weight.shape}')
+        # if self.to_pil:
+        #     for i, crop in enumerate(crops):
+        #         print(f'{i}: crop.shape: {crop.shape}')
+        #     for i, crop_seg in enumerate(crops_seg):
+        #         print(f'{i}: crop_seg.shape: {crop_seg.shape}')
+        #     for i, crop_seg_weight in enumerate(crops_seg_weights):
+        #         print(f'{i}: crop_seg_weight.shape: {crop_seg_weight.shape}')
 
 
         # CONVERSION TO TENSOR via transforms SWAPS CWH to CHW
