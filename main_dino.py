@@ -176,10 +176,7 @@ def train_dino(args):
 
 
     if args.inc_segmentation:
-        ### WARNING! See https://pytorch.org/docs/stable/data.html
-        ### Not calling sampler.set_epoch() may mess up shuffling each epoch...
-        ### ...but maybe we already randomize ourselves?
-        data_loader = PageLoader(
+        dataset = PageLoader(
             docs,
             anchors,
             class_weights,
@@ -197,16 +194,16 @@ def train_dino(args):
         )
     else:
         dataset = datasets.ImageFolder(args.data_path, transform=transform)
-        sampler = torch.utils.data.DistributedSampler(dataset, shuffle=True)
-        data_loader = torch.utils.data.DataLoader(
-            dataset,
-            sampler=sampler,
-            batch_size=args.batch_size_per_gpu,
-            num_workers=args.num_workers,
-            pin_memory=True,
-            drop_last=True,
-        )
-        print(f"Data loaded: there are {len(dataset)} images.")
+    sampler = torch.utils.data.DistributedSampler(dataset, shuffle=True)
+    data_loader = torch.utils.data.DataLoader(
+        dataset,
+        sampler=sampler,
+        batch_size=args.batch_size_per_gpu,
+        num_workers=args.num_workers,
+        pin_memory=True,
+        drop_last=True,
+    )
+    print(f"Data loaded: there are {len(dataset)} images.")
 
 
 
@@ -326,8 +323,7 @@ def train_dino(args):
     start_time = time.time()
     print("Starting DINO training !")
     for epoch in range(start_epoch, args.epochs):
-        if args.inc_segmentation is False:
-            data_loader.sampler.set_epoch(epoch)
+        data_loader.sampler.set_epoch(epoch)
 
         # ============ training one epoch of DINO ... ============
         train_stats = train_one_epoch(student, teacher, teacher_without_ddp, dino_loss,
@@ -376,9 +372,11 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
             images = inputs
             segmaps = [sm.cuda(non_blocking=True) for sm in segmaps]
             weights = [w.cuda(non_blocking=True) for w in weights]
+            assert False, f'A: len(images): {len(images)}\nlen(images[0]): {len(images[0])}\nlen(images[1]): {len(images[1])}'
         else:
             images, _ = data
-            assert False, f'len(images): {len(images)}\nlen(images[0]): {len(images[0])}\nlen(images[1]): {len(images[1])}'
+            # Collator is smart enough to return an extra dimension BEFORE the batch dimension when the dataset returns a list of items for one sample
+            assert False, f'B: len(images): {len(images)}\nlen(images[0]): {len(images[0])}\nlen(images[1]): {len(images[1])}'
 
         batch_size = len(images)
 
