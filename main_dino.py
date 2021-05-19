@@ -412,14 +412,15 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
 
 
 
-        # segmentation SSL
-        lambda_seg = 1. / len(segmaps)
-        for idx in range(len(segmaps)):
-            seg_loss = (
-                lambda_seg
-                * loss_func(weights[idx] * segmaps_[idx], weights[idx] * segmaps[idx])
-            )
-            loss += seg_loss
+        if args.inc_segmentation:
+            # segmentation SSL
+            lambda_seg = 1. / len(segmaps)
+            for idx in range(len(segmaps)):
+                seg_loss = (
+                    lambda_seg
+                    * loss_func(weights[idx] * segmaps_[idx], weights[idx] * segmaps[idx])
+                )
+                loss += seg_loss
 
 
 
