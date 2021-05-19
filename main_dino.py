@@ -571,8 +571,11 @@ class DataAugmentationDINO(object):
         # WARNING: RANDOM HORIZONTAL FLIP has been LOST from flip_and_color_jitter
 
         h, w = self.target_img_size[0], self.target_img_size[1]
-        sz1 = (1, h, w)
-        sz3 = (3, h, w)
+        # Do not include channels
+        # sz1 = (1, h, w)
+        # sz3 = (3, h, w)
+        sz1 = (h, w)
+        sz3 = (h, w)
 
         if self.to_pil:
             # print(f'A: image.shape: {image.shape}, mean = {torch.mean(torch.abs(image))}')
@@ -586,7 +589,7 @@ class DataAugmentationDINO(object):
         # Conversion to tensor happens as you can see in the actual transform sequence above
         # print(f'***********************************************\ntype(out): {type(out)}\n***********************************************')
         out = self.global_transfo1(out)
-        print(f'***********************************************\nout.shape: {out.shape}\n***********************************************')
+        # print(f'***********************************************\nout.shape: {out.shape}\n***********************************************')
         out = F.interpolate(out, size=sz3)
         crops.append(out)
         if image2 is not None:
