@@ -608,8 +608,8 @@ class DataAugmentationDINO(object):
 
         crop_params = transforms.RandomResizedCrop.get_params(image, scale=self.global_crops_scale, ratio=self.ratio)
         out = transforms.functional.crop(image, *crop_params)
-        out = F.interpolate(out.unsqueeze(0), size=sz3).squeeze(0)
         out=self.global_transfo2(out)
+        out = F.interpolate(out.unsqueeze(0), size=sz3).squeeze(0)
         crops.append(out)
         if image2 is not None:
             segmented_reconstructed = torch.tensor(())
@@ -628,8 +628,8 @@ class DataAugmentationDINO(object):
         for _ in range(self.local_crops_number):
             crop_params = transforms.RandomResizedCrop.get_params(image, scale=self.global_crops_scale, ratio=self.ratio)
             out = transforms.functional.crop(image, *crop_params)
-            out = F.interpolate(out.unsqueeze(0), size=sz3).squeeze(0)
             out=self.local_transfo(out)
+            out = F.interpolate(out.unsqueeze(0), size=sz3).squeeze(0)
             crops.append(out)
             if image2 is not None:
                 segmented_reconstructed = torch.tensor(())
