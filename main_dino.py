@@ -372,11 +372,11 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
             images = inputs
             segmaps = [sm.cuda(non_blocking=True) for sm in segmaps]
             weights = [w.cuda(non_blocking=True) for w in weights]
-            assert False, f'A1: len(segmaps): {len(segmaps)}\nlen(segmaps[0]): {len(segmaps[0])}\nlen(segmaps[1]): {len(segmaps[1])}'
+            # assert False, f'A1: len(segmaps): {len(segmaps)}\nlen(segmaps[0]): {len(segmaps[0])}\nlen(segmaps[1]): {len(segmaps[1])}'
         else:
             images, _ = data
             # Collator is smart enough to return an extra dimension BEFORE the batch dimension when the dataset returns a list of items for one sample
-            assert False, f'B: len(images): {len(images)}\nlen(images[0]): {len(images[0])}\nlen(images[1]): {len(images[1])}'
+            # assert False, f'B: len(images): {len(images)}\nlen(images[0]): {len(images[0])}\nlen(images[1]): {len(images[1])}'
 
         batch_size = len(images)
 
@@ -396,12 +396,8 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
             teacher_output = teacher(images[:2])  # only the 2 global views pass through the teacher
             student_output = student(images)
 
-
             # segmentation SSL
-            # convert inputs to PIL RGB image in BW
             student_output, segmaps_ = student_output
-
-
 
             loss = dino_loss(student_output, teacher_output, epoch)
 
@@ -412,13 +408,13 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
 
 
         # segmentation SSL
-        lambda_seg = 1.
-        seg_loss = (
-            lambda_seg
-            * batch_size
-            * loss_func(weights * segmaps_, weights * segmaps)
-        )
-        loss += seg_loss
+        lambda_seg = 1. / len(segmaps)
+        for idx in range(len(segmaps)):
+            seg_loss = (
+                lambda_seg
+                * loss_func(weights[idx] * segmaps_[idx], weights[idx] * segmaps[idx])
+            )
+            loss += seg_loss
 
 
 
