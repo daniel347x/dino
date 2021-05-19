@@ -405,7 +405,6 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
 
             # segmentation SSL
             if args.inc_segmentation:
-                print(f'student_output: {student_output.shape}')
                 student_output, segmaps_ = student_output
 
             loss = dino_loss(student_output, teacher_output, epoch)
