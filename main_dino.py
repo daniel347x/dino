@@ -170,7 +170,7 @@ def train_dino(args):
         args.local_crops_scale,
         args.local_crops_number,
         to_pil=args.inc_segmentation,
-        target_img_size=None,
+        target_img_size=[256,192],
     )
 
 
@@ -573,8 +573,8 @@ class DataAugmentationDINO(object):
         if self.to_pil:
             # print(f'A: image.shape: {image.shape}, mean = {torch.mean(torch.abs(image))}')
             image = transforms.ToPILImage()(image).convert("RGB")
-            # if self.target_img_size is not None:
-            #     image = image.resize((self.target_img_size, self.target_img_size))
+            if self.target_img_size is not None:
+                image = image.resize((self.target_img_size[0], self.target_img_size[1]))
 
         crop_params = transforms.RandomResizedCrop.get_params(image, scale=self.global_crops_scale, ratio=self.ratio)
         out = transforms.functional.crop(image, *crop_params)
@@ -619,13 +619,16 @@ class DataAugmentationDINO(object):
                 image_ = transforms.functional.crop(image3, *crop_params)
                 crops_seg_weights.append(image_)
 
-        # if self.to_pil:
-        #     for i, crop in enumerate(crops):
-        #         print(f'{i}: crop.shape: {crop.shape}')
-        #     for i, crop_seg in enumerate(crops_seg):
-        #         print(f'{i}: crop_seg.shape: {crop_seg.shape}')
-        #     for i, crop_seg_weight in enumerate(crops_seg_weights):
-        #         print(f'{i}: crop_seg_weight.shape: {crop_seg_weight.shape}')
+        if self.to_pil:
+            for i, crop in enumerate(crops):
+                if crop.size(-2) < 255:
+                    print(f'{i}: crop.shape: {crop.shape}')
+            for i, crop_seg in enumerate(crops_seg):
+                if crop_seg.size(-2) < 255:
+                    print(f'{i}: crop_seg.shape: {crop_seg.shape}')
+            for i, crop_seg_weight in enumerate(crops_seg_weights):
+                if crop_seg_weight.size(-2) < 255:
+                    print(f'{i}: crop_seg_weight.shape: {crop_seg_weight.shape}')
 
 
         # CONVERSION TO TENSOR via transforms SWAPS CWH to CHW
