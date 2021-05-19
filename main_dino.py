@@ -574,7 +574,7 @@ class DataAugmentationDINO(object):
             # print(f'A: image.shape: {image.shape}, mean = {torch.mean(torch.abs(image))}')
             image = transforms.ToPILImage()(image).convert("RGB")
             if self.target_img_size is not None:
-                image = image.resize((self.target_img_size[0], self.target_img_size[1]))
+                image = image.resize((self.target_img_size[1], self.target_img_size[0]))
 
         crop_params = transforms.RandomResizedCrop.get_params(image, scale=self.global_crops_scale, ratio=self.ratio)
         out = transforms.functional.crop(image, *crop_params)
@@ -619,7 +619,11 @@ class DataAugmentationDINO(object):
                 image_ = transforms.functional.crop(image3, *crop_params)
                 crops_seg_weights.append(image_)
 
-        if self.to_pil:
+        ######################################################
+        # CONVERSION TO TENSOR via transforms SWAPS CWH to CHW
+        ######################################################
+
+        if self.target_img_size is not None:
             for i, crop in enumerate(crops):
                 if crop.size(-2) < 255:
                     print(f'{i}: crop.shape: {crop.shape}')
@@ -629,9 +633,6 @@ class DataAugmentationDINO(object):
             for i, crop_seg_weight in enumerate(crops_seg_weights):
                 if crop_seg_weight.size(-2) < 255:
                     print(f'{i}: crop_seg_weight.shape: {crop_seg_weight.shape}')
-
-
-        # CONVERSION TO TENSOR via transforms SWAPS CWH to CHW
 
         if image2 is not None:
             assert image3 is not None
