@@ -41,8 +41,8 @@ from deepink.segmentation.data_loaders import PageLoader
 from deepink.core.utils import load_pickle
 
 DOCS = 'training'
-testing_dataset_path = config['train_files']
-training_dataset_path = config['test_files']
+testing_dataset_path = config['test_files']
+training_dataset_path = config['train_files']
 anchors = config['anchors_file']
 assert DOCS in ['testing', 'training']
 
@@ -246,7 +246,7 @@ def train_dino(args):
         DINOHead(embed_dim, args.out_dim, args.use_bn_in_head),
     )
     # move networks to gpu
-    if args.device.lower == 'cuda':
+    if args.device.lower() == 'cuda':
         student, teacher = student.cuda(), teacher.cuda()
     # synchronize batch norms (if any)
     if utils.has_batchnorms(student):
