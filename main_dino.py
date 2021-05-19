@@ -571,8 +571,8 @@ class DataAugmentationDINO(object):
         # WARNING: RANDOM HORIZONTAL FLIP has been LOST from flip_and_color_jitter
 
         h, w = self.target_img_size[0], self.target_img_size[1]
-        sz1 = (1, h,w)
-        sz3 = (3, h,w)
+        sz1 = (1, h, w)
+        sz3 = (3, h, w)
 
         if self.to_pil:
             # print(f'A: image.shape: {image.shape}, mean = {torch.mean(torch.abs(image))}')
@@ -582,6 +582,7 @@ class DataAugmentationDINO(object):
 
         crop_params = transforms.RandomResizedCrop.get_params(image, scale=self.global_crops_scale, ratio=self.ratio)
         out = transforms.functional.crop(image, *crop_params)
+        print(f'***********************************************\ntype(out): {type(out)}\n***********************************************')
         out = F.interpolate(out, size=sz3)
         out=self.global_transfo1(out)
         crops.append(out)
