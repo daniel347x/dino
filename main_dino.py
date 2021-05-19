@@ -190,6 +190,7 @@ def train_dino(args):
             synthesis_v2=False,
             df_nodes=None,
             batch_augmentation_count=1,
+            dino_transform=transform,
             **data_loader_args,
         )
     else:
