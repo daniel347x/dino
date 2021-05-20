@@ -123,9 +123,10 @@ if __name__ == '__main__':
     parser.add_argument("--threshold", type=float, default=0.6, help="""We visualize masks
         obtained by thresholding the self-attention maps to keep xx% of the mass.""")
     parser.add_argument('--inc_segmentation', type=utils.bool_flag, default=False, help="""Whether or not model was trained with SSL segmentation""")
+    parser.add_argument('--device', default='cuda', type=str, help="""CUDA or CPU""")
     args = parser.parse_args()
 
-    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    device = torch.device(args.device)
     # build model
     model = vits.__dict__[args.arch](patch_size=args.patch_size, num_classes=0, use_segmap=args.inc_segmentation)
     for p in model.parameters():
