@@ -335,10 +335,17 @@ class VisionTransformer(nn.Module):
 
         # Also output patchwise segmaps
         if self.use_segmap:
+            # bs * ncrops, patch index, logits
             segmap_input = x[:, 1:, :]
             segmentations = []
             for seg_out in self.seg_outs:
-                segmentation = seg_out(segmap_input)
+                segmentation_pieces = seg_out(segmap_input)
+                segmentation = torch.tensor((segmentation_piece.size(0), 1, self.num_patches_h * self.patch_size, self.num_patches_w * self.patch_size))
+                # Merge pieces into a single image
+                for h in range(self.num_patches_h):
+                    for w in range(self.num_patches_w):
+                        current_piece = h * self.num_patches_w + w
+                        segmentation[:, 0, h * self.patch_size : (h+1) * self.patch_size, w * self.patch_size : (w+1) * self.patch_size] = segmentation_pieces[:, current_piece, :, :]
                 # each segmentation is now (batch_size * ncrops) in length,
                 # because PyTorch merged the 'ncrops' list dimension and the 'batch_size' tensor dimension
                 # that was given as input to forward()
