@@ -17,6 +17,7 @@ https://github.com/rwightman/pytorch-image-models/blob/master/timm/models/vision
 """
 import math
 from functools import partial
+from re import L
 
 import torch
 import torch.nn as nn
@@ -139,27 +140,27 @@ class PatchEmbed(nn.Module):
         return x
 
 
-def _conv_block(in_dim, out_dim, act_fn):
+def _conv_block(in_dim, out_dim, act_fn, kernel_size=3, stride=1, padding=0):
     return nn.Sequential(
-        nn.Conv2d(in_dim, out_dim, kernel_size=3, stride=1, padding=1),
+        nn.Conv2d(in_dim, out_dim, kernel_size=kernel_size, stride=stride, padding=padding),
         nn.BatchNorm2d(out_dim),
         act_fn,
     )
 
 
-def _conv_trans_block(in_dim, out_dim, act_fn):
+def _conv_trans_block(in_dim, out_dim, act_fn, kernel_size=3, stride=2, padding=1, output_padding=1):
     return nn.Sequential(
         nn.ConvTranspose2d(
-            in_dim, out_dim, kernel_size=3, stride=2, padding=1, output_padding=1
+            in_dim, out_dim, kernel_size=kernel_size, stride=stride, padding=padding, output_padding=output_padding
         ),
         act_fn,
     )
 
 
-def _conv_block_2(in_dim, out_dim, act_fn):
+def _conv_block_2(in_dim, out_dim, act_fn, kernel_size=3, stride=1, padding=0):
     return nn.Sequential(
-        _conv_block(in_dim, out_dim, act_fn),
-        nn.Conv2d(in_dim, out_dim, kernel_size=3, stride=1, padding=1),
+        _conv_block(in_dim, out_dim, act_fn, kernel_size, stride, padding),
+        nn.Conv2d(in_dim, out_dim, kernel_size=kernel_size, stride=stride, padding=padding),
         nn.BatchNorm2d(out_dim),
     )
 
@@ -183,6 +184,53 @@ class _Conv_residual_conv_2(nn.Module):
         conv_3 = self.conv_3(res)
         return conv_3
 
+
+class _SegMap_TransConv(nn.Module):
+    def __init__(self, embed_dim, start_channels, patch_size):
+        super(_SegMap_TransConv, self).__init__()
+        self.bridge1 = Mlp(embed_dim, hidden_features=embed_dim*4, out_features=start_channels, act_layer=nn.GELU, drop=0.1)
+        self.bridge2 = Mlp(embed_dim*4, hidden_features=embed_dim*4, out_features=start_channels, act_layer=nn.GELU, drop=0.1)
+        out_size = 1
+        out_size *= 2
+        self.conv1 = _conv_trans_block(start_channels, start_channels / out_size, nn.ReLU(), kernel_size=2, stride=2, padding=0) # 2x2
+        if out_size < patch_size:
+            out_size *= 2
+            self.conv2 = _conv_trans_block(start_channels, start_channels / out_size, nn.ReLU(), kernel_size=2, stride=2, padding=0) # 4x4
+        else:
+            self.conv2 = None
+        if out_size < patch_size:
+            out_size *= 2
+            self.conv3 = _conv_trans_block(start_channels, start_channels / out_size, nn.ReLU(), kernel_size=2, stride=2, padding=0) # 8x8
+        else:
+            self.conv3 = None
+        if out_size < patch_size:
+            out_size *= 2
+            self.conv4 = _conv_trans_block(start_channels, start_channels / out_size, nn.ReLU(), kernel_size=2, stride=2, padding=0) # 16x16
+        else:
+            self.conv4 = None
+        if out_size < patch_size:
+            out_size *= 2
+            self.conv5 = _conv_trans_block(start_channels, start_channels / out_size, nn.ReLU(), kernel_size=2, stride=2, padding=0) # 32x32
+        else:
+            self.conv5 = None
+        self.conv_final = _conv_block_2(start_channels / out_size, 1, nn.ReLU(), 1, 1) # Drop down to 1 channel
+
+    def forward(self, x):
+        bridge = self.bridge1(x)
+        out_segmaps = self.bridge2(bridge)
+        out_segmaps = bridge.reshape((bridge.size(0), 1, 1))
+        if self.conv1:
+            out_segmaps = self.conv1(out_segmaps)
+        if self.conv2:
+            out_segmaps = self.conv2(out_segmaps)
+        if self.conv3:
+            out_segmaps = self.conv3(out_segmaps)
+        if self.conv4:
+            out_segmaps = self.conv4(out_segmaps)
+        if self.conv5:
+            out_segmaps = self.conv(out_segmaps)
+        out_segmaps = self.conv_final(out_segmaps)
+        return out_segmaps
 
 class VisionTransformer(nn.Module):
     """ Vision Transformer """
@@ -228,8 +276,11 @@ class VisionTransformer(nn.Module):
         if self.include_segmap:
             self.patch_size = patch_size
             self.img_size = img_size
-            self.out_dim = 4 # one per class, hard-coded for prototype
-            self.bridge = Mlp(embed_dim, hidden_features=embed_dim*4, out_features=patch_size*patch_size*self.out_dim, act_layer=nn.GELU, drop=0.1)
+            self.segmentation_class_count_including_none = 4 # one per class, hard-coded for prototype
+            start_channels = 4096
+            self.seg_outs = []
+            for _ in self.segmentation_class_count_including_none:
+                self.seg_outs.append(_SegMap_TransConv(embed_dim, start_channels, patch_size))
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
@@ -284,9 +335,15 @@ class VisionTransformer(nn.Module):
 
         # Also output patchwise segmaps
         if self.use_segmap:
-            bridge = self.bridge(x[:, 1:, :])
-            segmaps = bridge.reshape((bridge.size(0), self.out_dim, self.img_size[0], self.img_size[1]))
-            return vit_cls_output_logits, segmaps
+            segmap_input = x[:, 1:, :]
+            segmentations = []
+            for seg_out in self.seg_outs:
+                segmentation = seg_out(segmap_input)
+                # each segmentation is now (batch_size * ncrops) in length,
+                # because PyTorch merged the 'ncrops' list dimension and the 'batch_size' tensor dimension
+                # that was given as input to forward()
+                segmentations.append(segmentation)
+            return vit_cls_output_logits, *segmentations
         else:
             return vit_cls_output_logits
 
