@@ -222,7 +222,7 @@ if __name__ == '__main__':
     for j in range(nh):
         fname = os.path.join(args.output_dir, "attn-head" + str(j) + ".png")
         plt.imsave(fname=fname, arr=attentions[j], format='png')
-        print(f"{fname} saved.")
+        # print(f"{fname} saved.")
 
     image = skimage.io.imread(os.path.join(args.output_dir, "img.png"))
 
