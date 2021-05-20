@@ -278,7 +278,7 @@ class VisionTransformer(nn.Module):
             self.img_size = img_size
             self.segmentation_class_count_including_none = 4 # one per class, hard-coded for prototype
             start_channels = 4096
-            self.seg_outs = []
+            self.seg_outs = nn.ModuleList([])
             for _ in range(self.segmentation_class_count_including_none):
                 self.seg_outs.append(_SegMap_TransConv(embed_dim, start_channels, patch_size))
 
