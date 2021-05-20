@@ -245,11 +245,11 @@ class _SegMap_TransConv(nn.Module):
                 patch_segmap = self.conv2(patch_segmap)
             if self.conv3:
                 print(f'*************************')
-                print(f'forward, pre-conv3: in: {patch_segmap[1]}')
+                print(f'forward, pre-conv3: in: {patch_segmap.size(1)}')
                 print(f'*************************')
                 patch_segmap = self.conv3(patch_segmap)
                 print(f'*************************')
-                print(f'forward, post-conv3: out: {patch_segmap[1]}')
+                print(f'forward, post-conv3: out: {patch_segmap.size(1)}')
                 print(f'*************************')
             if self.conv4:
                 assert False
