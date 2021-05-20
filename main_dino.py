@@ -405,6 +405,7 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
                 student_output, segmaps_ = student_output
 
             loss = dino_loss(student_output, teacher_output, epoch)
+            print(f'loss: {loss}')
 
         if not math.isfinite(loss.item()):
             print("Loss is {}, stopping training".format(loss.item()), force=True)
@@ -420,6 +421,7 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
                     lambda_seg
                     * loss_func(weights[idx] * segmaps_[idx], weights[idx] * segmaps[idx])
                 )
+                print(f'seg_loss: {seg_loss}')
                 loss += seg_loss
 
 
