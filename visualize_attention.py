@@ -35,20 +35,22 @@ import utils
 import vision_transformer as vits
 
 
-def apply_mask(image, mask, color, alpha=0.5):
+def apply_mask(image, mask, color, alpha=0.5, include_img=True):
     for c in range(3):
-        image[:, :, c] = image[:, :, c] * (1 - alpha * mask) + alpha * mask * color[c] * 255
+        if include_img:
+            image[:, :, c] = image[:, :, c] * (1 - alpha * mask) + alpha * mask * color[c] * 255
+        else:
+            image[:, :, c] = mask * color[c] * 255
     return image
 
 
-def random_colors(N, bright=True):
+def get_colors(N, bright=True):
     """
     Generate random colors.
     """
     brightness = 1.0 if bright else 0.7
     hsv = [(i / N, 1, brightness) for i in range(N)]
     colors = list(map(lambda c: colorsys.hsv_to_rgb(*c), hsv))
-    random.shuffle(colors)
     return colors
 
 
@@ -63,7 +65,7 @@ def create_save_image_grid(imgs, save_as_png_pathname, rows=4, cols=8):
         plt.imsave(save_as_png_pathname, grid)
     return grid
 
-def display_instances(image, mask, fname="test", figsize=(5, 5), blur=False, contour=True, alpha=0.5):
+def display_instances(image, mask, fname="test", figsize=(5, 5), blur=False, contour=True, alpha=0.5, include_img=True):
     fig = plt.figure(figsize=figsize, frameon=False)
     ax = plt.Axes(fig, [0., 0., 1., 1.])
     ax.set_axis_off()
@@ -73,7 +75,7 @@ def display_instances(image, mask, fname="test", figsize=(5, 5), blur=False, con
     N = 1
     mask = mask[None, :, :]
     # Generate random colors
-    colors = random_colors(N)
+    colors = get_colors(N)
 
     # Show area outside image boundaries.
     height, width = image.shape[:2]
@@ -88,7 +90,7 @@ def display_instances(image, mask, fname="test", figsize=(5, 5), blur=False, con
         if blur:
             _mask = cv2.blur(_mask,(10,10))
         # Mask
-        masked_image = apply_mask(masked_image, _mask, color, alpha)
+        masked_image = apply_mask(masked_image, _mask, color, alpha, include_img=include_img)
         # Mask Polygon
         # Pad to ensure proper polygons for masks that touch image edges.
         if contour:
@@ -236,15 +238,15 @@ if __name__ == '__main__':
     if args.inc_segmentation:
         pil_imgs_segmaps = []
         segmap_idx = 0
-        pil_img = display_instances(image, segmaps[0, segmap_idx].numpy(), fname=tmp_filename, blur=False)
+        pil_img = display_instances(image, segmaps[0, segmap_idx].numpy(), fname=tmp_filename, blur=False, include_img=False)
         pil_imgs_segmaps.append(pil_img)
         segmap_idx = 1
-        pil_img = display_instances(image, segmaps[0, segmap_idx].numpy(), fname=tmp_filename, blur=False)
+        pil_img = display_instances(image, segmaps[0, segmap_idx].numpy(), fname=tmp_filename, blur=False, include_img=False)
         pil_imgs_segmaps.append(pil_img)
         segmap_idx = 2
-        pil_img = display_instances(image, segmaps[0, segmap_idx].numpy(), fname=tmp_filename, blur=False)
+        pil_img = display_instances(image, segmaps[0, segmap_idx].numpy(), fname=tmp_filename, blur=False, include_img=False)
         pil_imgs_segmaps.append(pil_img)
         segmap_idx = 3
-        pil_img = display_instances(image, segmaps[0, segmap_idx].numpy(), fname=tmp_filename, blur=False)
+        pil_img = display_instances(image, segmaps[0, segmap_idx].numpy(), fname=tmp_filename, blur=False, include_img=False)
         pil_imgs_segmaps.append(pil_img)
         grid = create_save_image_grid(pil_imgs_segmaps, os.path.join(args.output_dir, f"img_grid_segmaps.png"), rows=2, cols=2)
