@@ -389,6 +389,7 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
         # move images to gpu
         images = [im.cuda(non_blocking=True) for im in images]
 
+        DebugLabels = False
 
         # teacher and student forward passes + compute dino loss
         with torch.cuda.amp.autocast(fp16_scaler is not None):
@@ -406,7 +407,8 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
                 segmaps_ = segmaps_.chunk(len(images))
 
             loss = dino_loss(student_output, teacher_output, epoch)
-            print(f'loss: {loss}')
+            if DebugLabels:
+                print(f'loss: {loss}')
 
         if not math.isfinite(loss.item()):
             print("Loss is {}, stopping training".format(loss.item()), force=True)
@@ -418,15 +420,14 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
             # segmentation SSL
             lambda_seg = 250.
             ncrops = len(segmaps)
+            seg_loss = None
             for idx in range(ncrops):
                 bs = len(segmaps[idx])
                 for bidx in range(bs):
-                    seg_loss = (
-                        lambda_seg
-                        * loss_func(weights[idx][bidx] * segmaps_[idx][bidx], weights[idx][bidx] * segmaps[idx][bidx])
-                    )
-                    loss += seg_loss
-                    DebugLabels = False
+                    if seg_loss is None:
+                        seg_loss = lambda_seg * loss_func(weights[idx][bidx] * segmaps_[idx][bidx], weights[idx][bidx] * segmaps[idx][bidx])
+                    else:
+                        seg_loss += lambda_seg * loss_func(weights[idx][bidx] * segmaps_[idx][bidx], weights[idx][bidx] * segmaps[idx][bidx])
                     if DebugLabels:
                         print(f'seg_loss: {seg_loss}')
                         pil_img = transforms.ToPILImage()(images[idx][bidx])
@@ -438,6 +439,9 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
                             pil_img.save(f'/data/deepink/segmaps_labels_c{idx}_b{bidx}_ch{i}.png')
                             pil_img = transforms.ToPILImage()(segmaps_[idx][bidx][i])
                             pil_img.save(f'/data/deepink/segmaps_preds_c{idx}_b{bidx}_ch{i}.png')
+            total_loss = loss + seg_loss
+        else:
+            total_loss = loss
 
 
 
@@ -446,14 +450,14 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
         optimizer.zero_grad()
         param_norms = None
         if fp16_scaler is None:
-            loss.backward()
+            total_loss.backward()
             if args.clip_grad:
                 param_norms = utils.clip_gradients(student, args.clip_grad)
             utils.cancel_gradients_last_layer(epoch, student,
                                               args.freeze_last_layer)
             optimizer.step()
         else:
-            fp16_scaler.scale(loss).backward()
+            fp16_scaler.scale(total_loss).backward()
             if args.clip_grad:
                 fp16_scaler.unscale_(optimizer)  # unscale the gradients of optimizer's assigned params in-place
                 param_norms = utils.clip_gradients(student, args.clip_grad)
@@ -470,9 +474,11 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
 
         # logging
         torch.cuda.synchronize()
+        metric_logger.update(total_loss=total_loss.item())
         metric_logger.update(loss=loss.item())
+        metric_logger.update(seg_loss=seg_loss.item())
         metric_logger.update(lr=optimizer.param_groups[0]["lr"])
-        metric_logger.update(wd=optimizer.param_groups[0]["weight_decay"])
+        # metric_logger.update(wd=optimizer.param_groups[0]["weight_decay"])
     # gather the stats from all processes
     metric_logger.synchronize_between_processes()
     print("Averaged stats:", metric_logger)
