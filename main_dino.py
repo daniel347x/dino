@@ -421,7 +421,7 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
                     lambda_seg
                     * loss_func(weights[idx] * segmaps_[idx], weights[idx] * segmaps[idx])
                 )
-                pil_img = transforms.ToPILImage()(image[idx])
+                pil_img = transforms.ToPILImage()(images[idx])
                 pil_img.save(f'/data/deepink/image_b{idx}.png')
                 pil_img = transforms.ToPILImage()(weights[idx])
                 pil_img.save(f'/data/deepink/weights_b{idx}.png')
