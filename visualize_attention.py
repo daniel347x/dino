@@ -52,6 +52,17 @@ def random_colors(N, bright=True):
     return colors
 
 
+def create_save_image_grid(imgs, save_as_png_pathname, rows=4, cols=8):
+    assert rows*cols >= len(imgs)
+    import matplotlib.pyplot as plt
+    w, h = imgs[0].size
+    grid = Image.new('RGB', size=(cols*w, rows*h))
+    for i, img in enumerate(imgs):
+        grid.paste(img, box=(i%cols*w, i//cols*h))
+    if save_as_png_pathname:
+        plt.imsave(save_as_png_pathname, grid)
+    return grid
+
 def display_instances(image, mask, fname="test", figsize=(5, 5), blur=False, contour=True, alpha=0.5):
     fig = plt.figure(figsize=figsize, frameon=False)
     ax = plt.Axes(fig, [0., 0., 1., 1.])
@@ -89,10 +100,13 @@ def display_instances(image, mask, fname="test", figsize=(5, 5), blur=False, con
                 verts = np.fliplr(verts) - 1
                 p = Polygon(verts, facecolor="none", edgecolor=color)
                 ax.add_patch(p)
+
     ax.imshow(masked_image.astype(np.uint8), aspect='auto')
     fig.savefig(fname)
-    print(f"{fname} saved.")
-    return
+    with open(fname, 'rb') as f:
+        pil_img = Image.open(f)
+        pil_img = pil_img.convert('RGB')
+    return pil_img
 
 
 if __name__ == '__main__':
@@ -108,11 +122,12 @@ if __name__ == '__main__':
     parser.add_argument('--output_dir', default='.', help='Path where to save visualizations.')
     parser.add_argument("--threshold", type=float, default=0.6, help="""We visualize masks
         obtained by thresholding the self-attention maps to keep xx% of the mass.""")
+    parser.add_argument('--inc_segmentation', type=utils.bool_flag, default=False, help="""Whether or not model was trained with SSL segmentation""")
     args = parser.parse_args()
 
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     # build model
-    model = vits.__dict__[args.arch](patch_size=args.patch_size, num_classes=0)
+    model = vits.__dict__[args.arch](patch_size=args.patch_size, num_classes=0, use_segmap=args.inc_segmentation)
     for p in model.parameters():
         p.requires_grad = False
     model.eval()
@@ -166,17 +181,24 @@ if __name__ == '__main__':
     img = transform(img)
 
     # make the image divisible by the patch size
-    w, h = img.shape[1] - img.shape[1] % args.patch_size, img.shape[2] - img.shape[2] % args.patch_size
-    img = img[:, :w, :h].unsqueeze(0)
+    h, w = img.shape[1] - img.shape[1] % args.patch_size, img.shape[2] - img.shape[2] % args.patch_size
+    img = img[:, :h, :w].unsqueeze(0)
 
-    w_featmap = img.shape[-2] // args.patch_size
-    h_featmap = img.shape[-1] // args.patch_size
+    h_featmap = img.shape[-2] // args.patch_size
+    w_featmap = img.shape[-1] // args.patch_size
+    n_patches = h_featmap * w_featmap
 
-    attentions = model.get_last_selfattention(img.to(device))
+    if args.inc_segmentation:
+        attentions, segmaps = model.get_last_selfattention(img.to(device))
+        # model.out_dim == 4: hard-coded currently to "seg_classes": ["None", "Chart", "List", "Table"] from the config settings
+        assert segmaps.shape == (1, model.out_dim, h, w)
+    else:
+        attentions = model.get_last_selfattention(img.to(device))
 
     nh = attentions.shape[1] # number of head
 
     # we keep only the output patch attention
+    # attentions.shape: batch_size=1, number_heads, patch_count as OUTPUT (includes CLS token), patch_count as ATTENTION (includes CLS token)
     attentions = attentions[0, :, 0, 1:].reshape(nh, -1)
 
     # we keep only a certain percentage of the mass
@@ -187,11 +209,11 @@ if __name__ == '__main__':
     idx2 = torch.argsort(idx)
     for head in range(nh):
         th_attn[head] = th_attn[head][idx2[head]]
-    th_attn = th_attn.reshape(nh, w_featmap, h_featmap).float()
+    th_attn = th_attn.reshape(nh, h_featmap, w_featmap).float()
     # interpolate
     th_attn = nn.functional.interpolate(th_attn.unsqueeze(0), scale_factor=args.patch_size, mode="nearest")[0].cpu().numpy()
 
-    attentions = attentions.reshape(nh, w_featmap, h_featmap)
+    attentions = attentions.reshape(nh, h_featmap, w_featmap)
     attentions = nn.functional.interpolate(attentions.unsqueeze(0), scale_factor=args.patch_size, mode="nearest")[0].cpu().numpy()
 
     # save attentions heatmaps
@@ -203,5 +225,35 @@ if __name__ == '__main__':
         print(f"{fname} saved.")
 
     image = skimage.io.imread(os.path.join(args.output_dir, "img.png"))
+
+    pil_imgs = []
+    pil_imgs_segmaps_0 = []
+    pil_imgs_segmaps_1 = []
+    pil_imgs_segmaps_2 = []
+    pil_imgs_segmaps_3 = []
     for j in range(nh):
-        display_instances(image, th_attn[j], fname=os.path.join(args.output_dir, "mask_th" + str(args.threshold) + "_head" + str(j) +".png"), blur=False)
+        pil_img = display_instances(image, th_attn[j], blur=False)
+        pil_imgs.append(pil_img)
+        if args.inc_segmentation:
+            segmap_idx = 0
+            pil_img = display_instances(image, segmaps[0, segmap_idx].unsqueeze(0), blur=False)
+            pil_imgs_segmaps_0.append(pil_img)
+            segmap_idx = 1
+            pil_img = display_instances(image, segmaps[0, segmap_idx].unsqueeze(0), blur=False)
+            pil_imgs_segmaps_0.append(pil_img)
+            segmap_idx = 2
+            pil_img = display_instances(image, segmaps[0, segmap_idx].unsqueeze(0), blur=False)
+            pil_imgs_segmaps_0.append(pil_img)
+            segmap_idx = 3
+            pil_img = display_instances(image, segmaps[0, segmap_idx].unsqueeze(0), blur=False)
+            pil_imgs_segmaps_0.append(pil_img)
+    grid = create_save_image_grid(pil_imgs, os.path.join(args.output_dir, f"img_grid_attentions_th{args.threshold}.png"), rows=3, cols=4)
+    if args.inc_segmentation:
+        segmap_idx = 0
+        grid = create_save_image_grid(pil_imgs_segmaps_0, os.path.join(args.output_dir, f"img_grid_segmaps_{segmap_idx}.png"), rows=3, cols=4)
+        segmap_idx = 1
+        grid = create_save_image_grid(pil_imgs_segmaps_1, os.path.join(args.output_dir, f"img_grid_segmaps_{segmap_idx}.png"), rows=3, cols=4)
+        segmap_idx = 2
+        grid = create_save_image_grid(pil_imgs_segmaps_2, os.path.join(args.output_dir, f"img_grid_segmaps_{segmap_idx}.png"), rows=3, cols=4)
+        segmap_idx = 3
+        grid = create_save_image_grid(pil_imgs_segmaps_3, os.path.join(args.output_dir, f"img_grid_segmaps_{segmap_idx}.png"), rows=3, cols=4)

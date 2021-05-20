@@ -104,12 +104,16 @@ class Block(nn.Module):
         mlp_hidden_dim = int(dim * mlp_ratio)
         self.mlp = Mlp(in_features=dim, hidden_features=mlp_hidden_dim, act_layer=act_layer, drop=drop)
 
-    def forward(self, x, return_attention=False):
+    def forward(self, x, return_attention=False, return_both=False):
+        if return_both:
+            return_attention = False
         y, attn = self.attn(self.norm1(x))
         if return_attention:
             return attn
         x = x + self.drop_path(y)
         x = x + self.drop_path(self.mlp(self.norm2(x)))
+        if return_both:
+            return x, attn
         return x
 
 
@@ -188,8 +192,10 @@ class VisionTransformer(nn.Module):
         super().__init__()
         self.num_features = self.embed_dim = embed_dim
 
-        self.include_segmap = include_segmap
+        self.include_segmap = include_segmap # So that teacher and student have same parameters, even if unused by teacher
         self.use_segmap = use_segmap
+        if self.use_segmap:
+            self.include_segmap = True
 
         self.patch_embed = PatchEmbed(
             img_size=img_size, patch_size=patch_size, in_chans=in_chans, embed_dim=embed_dim)
@@ -276,12 +282,9 @@ class VisionTransformer(nn.Module):
         x = self.norm(x)
         vit_cls_output_logits = x[:, 0]
 
-
         # Also output patchwise segmaps
         if self.use_segmap:
-            # print(f'x.shape: {x.shape}')
             bridge = self.bridge(x[:, 1:, :])
-            # print(f'bridge.shape: {bridge.shape}')
             segmaps = bridge.reshape((bridge.size(0), self.out_dim, self.img_size[0], self.img_size[1]))
             return vit_cls_output_logits, segmaps
         else:
@@ -295,7 +298,17 @@ class VisionTransformer(nn.Module):
                 x = blk(x)
             else:
                 # return attention of the last block
-                return blk(x, return_attention=True)
+                return_both = self.use_segmap
+                blk_output = blk(x, return_attention=True, return_both=return_both)
+                if return_both is False:
+                    attn = blk_output
+                    return attn
+        x, attn = blk_output
+        x = self.norm(x)
+        bridge = self.bridge(x[:, 1:, :])
+        segmaps = bridge.reshape((bridge.size(0), self.out_dim, self.img_size[0], self.img_size[1]))
+        return attn, segmaps
+
 
     def get_intermediate_layers(self, x, n=1):
         x = self.prepare_tokens(x)
