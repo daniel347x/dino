@@ -416,7 +416,7 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
 
         if args.inc_segmentation:
             # segmentation SSL
-            lambda_seg = 1.
+            lambda_seg = 250.
             ncrops = len(segmaps)
             for idx in range(ncrops):
                 bs = len(segmaps[idx])
@@ -425,18 +425,19 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
                         lambda_seg
                         * loss_func(weights[idx][bidx] * segmaps_[idx][bidx], weights[idx][bidx] * segmaps[idx][bidx])
                     )
-                    print(f'seg_loss: {seg_loss}')
                     loss += seg_loss
-                    pil_img = transforms.ToPILImage()(images[idx][bidx])
-                    pil_img.save(f'/data/deepink/image_c{idx}_b{bidx}.png')
-                    pil_img = transforms.ToPILImage()(weights[idx][bidx])
-                    pil_img.save(f'/data/deepink/weights_c{idx}_b{bidx}.png')
-                    for i in range(4):
-                        pil_img = transforms.ToPILImage()(segmaps[idx][bidx][i])
-                        pil_img.save(f'/data/deepink/segmaps_labels_c{idx}_b{bidx}_ch{i}.png')
-                        pil_img = transforms.ToPILImage()(segmaps_[idx][bidx][i])
-                        pil_img.save(f'/data/deepink/segmaps_preds_c{idx}_b{bidx}_ch{i}.png')
-            assert False
+                    DebugLabels = False
+                    if DebugLabels:
+                        print(f'seg_loss: {seg_loss}')
+                        pil_img = transforms.ToPILImage()(images[idx][bidx])
+                        pil_img.save(f'/data/deepink/image_c{idx}_b{bidx}.png')
+                        pil_img = transforms.ToPILImage()(weights[idx][bidx])
+                        pil_img.save(f'/data/deepink/weights_c{idx}_b{bidx}.png')
+                        for i in range(4):
+                            pil_img = transforms.ToPILImage()(segmaps[idx][bidx][i])
+                            pil_img.save(f'/data/deepink/segmaps_labels_c{idx}_b{bidx}_ch{i}.png')
+                            pil_img = transforms.ToPILImage()(segmaps_[idx][bidx][i])
+                            pil_img.save(f'/data/deepink/segmaps_preds_c{idx}_b{bidx}_ch{i}.png')
 
 
 
