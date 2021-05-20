@@ -219,18 +219,23 @@ class _SegMap_TransConv(nn.Module):
     def forward(self, x):
         bridge = self.bridge1(x)
         out_segmaps = self.bridge2(bridge)
-        out_segmaps = out_segmaps.reshape((out_segmaps.size(0), self.start_channels, 1, 1))
-        if self.conv1:
-            out_segmaps = self.conv1(out_segmaps)
-        if self.conv2:
-            out_segmaps = self.conv2(out_segmaps)
-        if self.conv3:
-            out_segmaps = self.conv3(out_segmaps)
-        if self.conv4:
-            out_segmaps = self.conv4(out_segmaps)
-        if self.conv5:
-            out_segmaps = self.conv(out_segmaps)
-        out_segmaps = self.conv_final(out_segmaps)
+        patch_count = out_segmaps.size(1)
+        out_segmaps = out_segmaps.reshape((out_segmaps.size(0), patch_count, self.start_channels, 1, 1))
+        segmentation_patches_out = torch.zeros((out_segmaps.size(0), patch_count, out_segmaps.size(2), out_segmaps.size(3), out_segmaps.size(4))).to(x.device)
+        for p in range(patch_count):
+            patch_segmap = out_segmaps[:, p, :, :, :]
+            if self.conv1:
+                patch_segmap = self.conv1(patch_segmap)
+            if self.conv2:
+                patch_segmap = self.conv2(patch_segmap)
+            if self.conv3:
+                patch_segmap = self.conv3(patch_segmap)
+            if self.conv4:
+                patch_segmap = self.conv4(patch_segmap)
+            if self.conv5:
+                patch_segmap = self.conv(patch_segmap)
+            patch_segmap = self.conv_final(patch_segmap)
+            segmentation_patches_out[:, p, :, :, :] = patch_segmap
         return out_segmaps
 
 class VisionTransformer(nn.Module):
@@ -341,7 +346,7 @@ class VisionTransformer(nn.Module):
             segmentations = []
             for seg_out in self.seg_outs:
                 segmentation_pieces = seg_out(segmap_input)
-                segmentation = torch.tensor((segmentation_piece.size(0), 1, self.num_patches_h * self.patch_size, self.num_patches_w * self.patch_size))
+                segmentation = torch.tensor((segmentation_piece.size(0), 1, self.num_patches_h * self.patch_size, self.num_patches_w * self.patch_size)).to(x.device)
                 # Merge pieces into a single image
                 for h in range(self.num_patches_h):
                     for w in range(self.num_patches_w):
