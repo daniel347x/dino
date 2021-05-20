@@ -188,6 +188,7 @@ class _Conv_residual_conv_2(nn.Module):
 class _SegMap_TransConv(nn.Module):
     def __init__(self, embed_dim, start_channels, patch_size):
         super(_SegMap_TransConv, self).__init__()
+        self.start_channels = start_channels
         self.bridge1 = Mlp(embed_dim, hidden_features=embed_dim*4, out_features=embed_dim*4, act_layer=nn.GELU, drop=0.1)
         self.bridge2 = Mlp(embed_dim*4, hidden_features=embed_dim*4, out_features=start_channels, act_layer=nn.GELU, drop=0.1)
         out_size = 1
@@ -218,7 +219,7 @@ class _SegMap_TransConv(nn.Module):
     def forward(self, x):
         bridge = self.bridge1(x)
         out_segmaps = self.bridge2(bridge)
-        out_segmaps = bridge.reshape((bridge.size(0), 1, 1))
+        out_segmaps = out_segmaps.reshape((out_segmaps.size(0), self.start_channels, 1, 1))
         if self.conv1:
             out_segmaps = self.conv1(out_segmaps)
         if self.conv2:
