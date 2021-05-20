@@ -207,6 +207,9 @@ class _SegMap_TransConv(nn.Module):
             in_channels = start_channels // out_size
             out_size *= 2
             out_channels = start_channels // out_size
+            print(f'*************************')
+            print(f'conv3: in: {in_channels}, out: {out_channels}')
+            print(f'*************************')
             self.conv3 = _conv_trans_block(in_channels, out_channels, nn.ReLU(), kernel_size=2, stride=2, padding=0) # 8x8
         else:
             self.conv3 = None
@@ -241,10 +244,18 @@ class _SegMap_TransConv(nn.Module):
             if self.conv2:
                 patch_segmap = self.conv2(patch_segmap)
             if self.conv3:
+                print(f'*************************')
+                print(f'forward, pre-conv3: in: {patch_segmap[1]}')
+                print(f'*************************')
                 patch_segmap = self.conv3(patch_segmap)
+                print(f'*************************')
+                print(f'forward, post-conv3: out: {patch_segmap[1]}')
+                print(f'*************************')
             if self.conv4:
+                assert False
                 patch_segmap = self.conv4(patch_segmap)
             if self.conv5:
+                assert False
                 patch_segmap = self.conv(patch_segmap)
             patch_segmap = self.conv_final(patch_segmap)
             segmentation_patches_out[:, p, :, :, :] = patch_segmap
