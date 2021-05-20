@@ -159,7 +159,7 @@ def _conv_trans_block(in_dim, out_dim, act_fn, kernel_size=3, stride=2, padding=
 
 def _conv_block_2(in_dim, out_dim, act_fn, kernel_size=3, stride=1, padding=0):
     return nn.Sequential(
-        _conv_block(in_dim, out_dim, act_fn, kernel_size, stride, padding),
+        _conv_block(in_dim, in_dim, act_fn, kernel_size, stride, padding),
         nn.Conv2d(in_dim, out_dim, kernel_size=kernel_size, stride=stride, padding=padding),
         nn.BatchNorm2d(out_dim),
     )
@@ -228,6 +228,8 @@ class _SegMap_TransConv(nn.Module):
         else:
             self.conv5 = None
         in_channels = start_channels // out_size
+        self.final_mlp1 = Mlp(in_channels, in_channels*4, out_features=in_channels, act_layer=nn.GELU, drop=0.1)
+        self.final_mlp2 = Mlp(in_channels, in_channels*4, out_features=in_channels, act_layer=nn.GELU, drop=0.1)
         out_channels = 1
         self.conv_final = _conv_block_2(in_channels, out_channels, nn.ReLU(), kernel_size=1) # Drop down to 1 channel; image size should now be patch_size * patch_size
 
@@ -244,19 +246,15 @@ class _SegMap_TransConv(nn.Module):
             if self.conv2:
                 patch_segmap = self.conv2(patch_segmap)
             if self.conv3:
-                print(f'*************************')
-                print(f'forward, pre-conv3: in: {patch_segmap.size(1)}')
-                print(f'*************************')
                 patch_segmap = self.conv3(patch_segmap)
-                print(f'*************************')
-                print(f'forward, post-conv3: out: {patch_segmap.size(1)}')
-                print(f'*************************')
             if self.conv4:
                 assert False
                 patch_segmap = self.conv4(patch_segmap)
             if self.conv5:
                 assert False
                 patch_segmap = self.conv(patch_segmap)
+            patch_segmap = self.final_mlp1(patch_segmap)
+            patch_segmap = self.final_mlp2(patch_segmap)
             patch_segmap = self.conv_final(patch_segmap)
             segmentation_patches_out[:, p, :, :, :] = patch_segmap
         return out_segmaps
