@@ -148,7 +148,7 @@ def _conv_block(in_dim, out_dim, act_fn, kernel_size=3, stride=1, padding=0):
     )
 
 
-def _conv_trans_block(in_dim, out_dim, act_fn, kernel_size=3, stride=2, padding=1, output_padding=1):
+def _conv_trans_block(in_dim, out_dim, act_fn, kernel_size=3, stride=2, padding=1, output_padding=0):
     return nn.Sequential(
         nn.ConvTranspose2d(
             in_dim, out_dim, kernel_size=kernel_size, stride=stride, padding=padding, output_padding=output_padding
@@ -193,28 +193,40 @@ class _SegMap_TransConv(nn.Module):
         self.bridge2 = Mlp(embed_dim*4, hidden_features=embed_dim*4, out_features=start_channels, act_layer=nn.GELU, drop=0.1)
         out_size = 1
         out_size *= 2
-        self.conv1 = _conv_trans_block(start_channels, start_channels // out_size, nn.ReLU(), kernel_size=2, stride=2, padding=0) # 2x2
+        in_channels = start_channels
+        out_channels = start_channels // out_size
+        self.conv1 = _conv_trans_block(in_channels, out_channels, nn.ReLU(), kernel_size=2, stride=2, padding=0) # 2x2
         if out_size < patch_size:
+            in_channels = start_channels // out_size
             out_size *= 2
-            self.conv2 = _conv_trans_block(start_channels, start_channels // out_size, nn.ReLU(), kernel_size=2, stride=2, padding=0) # 4x4
+            out_channels = start_channels // out_size
+            self.conv2 = _conv_trans_block(in_channels, out_channels, nn.ReLU(), kernel_size=2, stride=2, padding=0) # 4x4
         else:
             self.conv2 = None
         if out_size < patch_size:
+            in_channels = start_channels // out_size
             out_size *= 2
-            self.conv3 = _conv_trans_block(start_channels, start_channels // out_size, nn.ReLU(), kernel_size=2, stride=2, padding=0) # 8x8
+            out_channels = start_channels // out_size
+            self.conv3 = _conv_trans_block(in_channels, out_channels, nn.ReLU(), kernel_size=2, stride=2, padding=0) # 8x8
         else:
             self.conv3 = None
         if out_size < patch_size:
+            in_channels = start_channels // out_size
             out_size *= 2
-            self.conv4 = _conv_trans_block(start_channels, start_channels // out_size, nn.ReLU(), kernel_size=2, stride=2, padding=0) # 16x16
+            out_channels = start_channels // out_size
+            self.conv4 = _conv_trans_block(in_channels, out_channels, nn.ReLU(), kernel_size=2, stride=2, padding=0) # 16x16
         else:
             self.conv4 = None
         if out_size < patch_size:
+            in_channels = start_channels // out_size
             out_size *= 2
-            self.conv5 = _conv_trans_block(start_channels, start_channels // out_size, nn.ReLU(), kernel_size=2, stride=2, padding=0) # 32x32
+            out_channels = start_channels // out_size
+            self.conv5 = _conv_trans_block(in_channels, out_channels, nn.ReLU(), kernel_size=2, stride=2, padding=0) # 32x32
         else:
             self.conv5 = None
-        self.conv_final = _conv_block_2(start_channels // out_size, 1, nn.ReLU(), 1, 1) # Drop down to 1 channel
+        in_channels = start_channels // out_size
+        out_channels = 1
+        self.conv_final = _conv_block_2(in_channels, out_channels, nn.ReLU(), kernel_size=1) # Drop down to 1 channel; image size should now be patch_size * patch_size
 
     def forward(self, x):
         bridge = self.bridge1(x)
