@@ -391,7 +391,7 @@ class VisionTransformer(nn.Module):
             print(f'len(segmentations) {len(segmentations)}')
             print(f'len(segmentations[0]) {len(segmentations[0])}')
             print(f'****************************************')
-            return vit_cls_output_logits, *segmentations
+            return vit_cls_output_logits, segmentations[0], segmentations[1], segmentations[2], segmentations[3]
         else:
             return vit_cls_output_logits
 
