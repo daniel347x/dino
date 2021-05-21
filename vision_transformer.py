@@ -471,7 +471,7 @@ class DINOHead(nn.Module):
 
     def forward(self, x):
         if self.use_segmap:
-            x, segmaps = x
+            x, *segmaps = x
         x = self.mlp(x)
         x = nn.functional.normalize(x, dim=-1, p=2)
         x = self.last_layer(x)
