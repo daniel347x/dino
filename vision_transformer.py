@@ -377,7 +377,7 @@ class VisionTransformer(nn.Module):
                 for h in range(self.num_patches_h):
                     for w in range(self.num_patches_w):
                         current_piece = h * self.num_patches_w + w
-                        segmentation[:, 0, h * self.patch_size : (h+1) * self.patch_size, w * self.patch_size : (w+1) * self.patch_size] = segmentation_pieces[:, current_piece, :, :]
+                        segmentation[:, 0, h * self.patch_size : (h+1) * self.patch_size, w * self.patch_size : (w+1) * self.patch_size] = segmentation_pieces[:, current_piece, 0, :, :]
                 # each segmentation is now (batch_size * ncrops) in length,
                 # because PyTorch merged the 'ncrops' list dimension and the 'batch_size' tensor dimension
                 # that was given as input to forward()
