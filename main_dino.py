@@ -377,9 +377,9 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
             # and DATASET returns a LIST of tensors for each batch item of length NCROPS,
             # which the DATALOADER converts into a TENSOR of that same length
             # (boxes has not been processed properly anywhere and is ignored).
-            # Ignoring whether list or tensor, the shape of images, etc. is therefore:
+            # Ignoring whether list or tensor, the shape of images, etc. is therefore
+            # (channels is 3 for images, 4 for segmaps (one per segmentation class, inc. none), and 1 for weights):
             # batch size, ncrops, channels, image height, image width
-            # (channels is 3 for images, 4 for segmaps (one per segmentation class, inc. none), and 1 for weights)
             images, segmaps, weights, boxes = data
 
             print(f'*************************************')
@@ -444,10 +444,12 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
             if args.inc_segmentation:
                 student_output, *segmaps_ = student_output
 
-                # print(f'*************************************')
-                # print(f'OUT type(segmaps_[0]): {type(segmaps_[0])}')
-                # print(f'OUT type(segmaps_[0][0]): {type(segmaps_[0][0])}')
-                # print(f'*************************************')
+                print(f'*************************************')
+                print(f'OUT type(segmaps_[0]): {type(segmaps_[0])}')
+                print(f'OUT type(segmaps_[0][0]): {type(segmaps_[0][0])}')
+                print(f'OUT len(segmaps_[0]): {len(segmaps_[0])}')
+                print(f'OUT len(segmaps_[0][0]): {len(segmaps_[0][0])}')
+                print(f'*************************************')
 
 
                 # print(f'******************************')
