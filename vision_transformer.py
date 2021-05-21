@@ -388,6 +388,7 @@ class VisionTransformer(nn.Module):
                 segmentations.append(segmentation)
             print(f'****************************************')
             print(f'IN FORWARD B')
+            print(f'len(segmentations) {len(segmentations)}')
             print(f'len(segmentations[0]) {len(segmentations[0])}')
             print(f'****************************************')
             return vit_cls_output_logits, *segmentations

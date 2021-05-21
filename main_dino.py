@@ -383,24 +383,24 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
             # ncrops, batch size, channels, image height, image width
             images, segmaps, weights, boxes = data
 
-            print(f'*************************************')
-            print(f'type(images): {type(images)}')
-            print(f'type(segmaps): {type(segmaps)}')
-            print(f'type(weights): {type(weights)}')
-            print(f'type(images[0]): {type(images[0])}')
-            print(f'type(segmaps[0]): {type(segmaps[0])}')
-            print(f'type(weights[0]): {type(weights[0])}')
-            print(f'len(images): {len(images)}')
-            print(f'len(segmaps): {len(segmaps)}')
-            print(f'len(weights): {len(weights)}')
-            print(f'len(images[0]): {len(images[0])}')
-            print(f'len(segmaps[0]): {len(segmaps[0])}')
-            print(f'len(weights[0]): {len(weights[0])}')
-            print(f'*************************************')
+            # print(f'*************************************')
+            # print(f'type(images): {type(images)}')
+            # print(f'type(segmaps): {type(segmaps)}')
+            # print(f'type(weights): {type(weights)}')
+            # print(f'type(images[0]): {type(images[0])}')
+            # print(f'type(segmaps[0]): {type(segmaps[0])}')
+            # print(f'type(weights[0]): {type(weights[0])}')
+            # print(f'len(images): {len(images)}')
+            # print(f'len(segmaps): {len(segmaps)}')
+            # print(f'len(weights): {len(weights)}')
+            # print(f'len(images[0]): {len(images[0])}')
+            # print(f'len(segmaps[0]): {len(segmaps[0])}')
+            # print(f'len(weights[0]): {len(weights[0])}')
+            # print(f'*************************************')
 
-            print(f'*********************************')
-            print(f'INCOMING: type(segmaps[0]): {type(segmaps[0])}')
-            print(f'*********************************')
+            # print(f'*********************************')
+            # print(f'INCOMING: type(segmaps[0]): {type(segmaps[0])}')
+            # print(f'*********************************')
 
             segmaps = [sm.cuda(non_blocking=True) for sm in segmaps]
             weights = [w.cuda(non_blocking=True) for w in weights]
@@ -432,9 +432,9 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
         # teacher and student forward passes + compute dino loss
         with torch.cuda.amp.autocast(fp16_scaler is not None):
 
-            ###########################################################
-            # INPUT: list, batch_size, image <-- notice first dimension
-            ###########################################################
+            ##################################
+            # INPUT: NCROPS, batch_size, image
+            ##################################
             # assert False, f'Notice the following: len(images) is the number of crops: {len(images)}\nWhereas each crop has length batch_size; here is the first crop's batch (global crop #1): len(images[0]): {len(images[0])}\nAnd here is the second crop's batch (global crop #2): len(images[1]): {len(images[1])}'
             # Note: Because it is a LIST of tensors passed to the forward() function,
             # PyTorch is smart enough to just increase the batch size accordingly
@@ -443,11 +443,21 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
 
             # segmentation SSL
             if args.inc_segmentation:
+
+                ##################################
+                # output for segmaps_:
+                # for segmap_ in segmaps_: # one segmap_ per segmentation class: none, chart, list, table
+                #   segmap_.shape == [batch_size * NCROPS, image_channels, image_height, image_width], with image_channels == 1 for each class segmentation map
+                #    ... data order for first dimension is:
+                #   [BS_ncrop_1, BS_ncrop_2, ...]
+                ##################################
                 student_output, *segmaps_ = student_output
 
                 print(f'*************************************')
+                print(f'OUT type(segmaps_): {type(segmaps_)}')
                 print(f'OUT type(segmaps_[0]): {type(segmaps_[0])}')
                 print(f'OUT type(segmaps_[0][0]): {type(segmaps_[0][0])}')
+                print(f'OUT len(segmaps_): {len(segmaps_)}')
                 print(f'OUT len(segmaps_[0]): {len(segmaps_[0])}')
                 print(f'OUT len(segmaps_[0][0]): {len(segmaps_[0][0])}')
                 print(f'*************************************')
