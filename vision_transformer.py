@@ -381,16 +381,16 @@ class VisionTransformer(nn.Module):
                 # each segmentation is now (batch_size * ncrops) in length,
                 # because PyTorch merged the 'ncrops' list dimension and the 'batch_size' tensor dimension
                 # that was given as input to forward()
-                print(f'****************************************')
-                print(f'IN FORWARD A')
-                print(f'len(segmentation) {len(segmentation)}')
-                print(f'****************************************')
+                # print(f'****************************************')
+                # print(f'IN FORWARD A')
+                # print(f'len(segmentation) {len(segmentation)}')
+                # print(f'****************************************')
                 segmentations.append(segmentation)
-            print(f'****************************************')
-            print(f'IN FORWARD B')
-            print(f'len(segmentations) {len(segmentations)}')
-            print(f'len(segmentations[0]) {len(segmentations[0])}')
-            print(f'****************************************')
+            # print(f'****************************************')
+            # print(f'IN FORWARD B')
+            # print(f'len(segmentations) {len(segmentations)}')
+            # print(f'len(segmentations[0]) {len(segmentations[0])}')
+            # print(f'****************************************')
             return vit_cls_output_logits, segmentations[0], segmentations[1], segmentations[2], segmentations[3]
         else:
             return vit_cls_output_logits
