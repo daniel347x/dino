@@ -189,8 +189,8 @@ class _SegMap_TransConv(nn.Module):
     def __init__(self, embed_dim, start_channels, patch_size):
         super(_SegMap_TransConv, self).__init__()
         self.start_channels = start_channels
-        self.bridge1 = Mlp(embed_dim, out_features=embed_dim//2, act_layer=nn.GELU, drop=0.1)
-        self.bridge2 = Mlp(embed_dim//2, out_features=start_channels, act_layer=nn.GELU, drop=0.1)
+        self.bridge1 = Mlp(embed_dim, out_features=embed_dim//4, act_layer=nn.GELU, drop=0.1)
+        self.bridge2 = Mlp(embed_dim//4, out_features=start_channels, act_layer=nn.GELU, drop=0.1)
         out_size = 1
         out_size *= 2
         in_channels = start_channels
@@ -307,7 +307,7 @@ class VisionTransformer(nn.Module):
             self.patch_size = patch_size
             self.img_size = img_size
             self.segmentation_class_count_including_none = 4 # one per class, hard-coded for prototype
-            start_channels = 4096
+            start_channels = 1024
             self.seg_outs = nn.ModuleList([])
             for _ in range(self.segmentation_class_count_including_none):
                 self.seg_outs.append(_SegMap_TransConv(embed_dim, start_channels, patch_size))
