@@ -395,6 +395,10 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
             # print(f'type(weights[0]): {type(weights[0])}')
             # print(f'*************************************')
 
+            print(f'*********************************')
+            print(f'INCOMING: type(segmaps[0]): {type(segmaps[0])}')
+            print(f'*********************************')
+
             segmaps = [sm.cuda(non_blocking=True) for sm in segmaps]
             weights = [w.cuda(non_blocking=True) for w in weights]
         else:
