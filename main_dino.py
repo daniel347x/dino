@@ -432,6 +432,13 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
             # segmentation SSL
             if args.inc_segmentation:
                 student_output, *segmaps_ = student_output
+
+                print(f'*************************************')
+                print(f'OUT type(segmaps_[0]): {type(segmaps_[0])}')
+                print(f'OUT type(segmaps_[0][0]): {type(segmaps_[0][0])}')
+                print(f'*************************************')
+
+
                 # print(f'******************************')
                 # print(f'In main: type(segmaps_): {type(segmaps_)}')
                 # print(f'In main: type(segmaps_[0]): {type(segmaps_[0])}')
