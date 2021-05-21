@@ -190,7 +190,7 @@ class _SegMap_TransConv(nn.Module):
         super(_SegMap_TransConv, self).__init__()
         self.start_channels = start_channels
         self.bridge1 = Mlp(embed_dim, hidden_features=embed_dim, out_features=embed_dim, act_layer=nn.GELU, drop=0.1)
-        self.bridge2 = Mlp(embed_dim*4, hidden_features=embed_dim, out_features=start_channels, act_layer=nn.GELU, drop=0.1)
+        self.bridge2 = Mlp(embed_dim, hidden_features=embed_dim, out_features=start_channels, act_layer=nn.GELU, drop=0.1)
         out_size = 1
         out_size *= 2
         in_channels = start_channels
