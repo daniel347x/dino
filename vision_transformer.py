@@ -231,9 +231,9 @@ class _SegMap_TransConv(nn.Module):
         in_dim = in_channels*patch_size*patch_size
         self.final_mlp1 = Mlp(in_dim, in_dim, out_features=in_dim, act_layer=nn.GELU, drop=0.1)
         self.final_mlp2 = Mlp(in_dim, in_dim, out_features=in_dim, act_layer=nn.GELU, drop=0.1)
-        in_channels = 16
+        self.final_conv_in_channels = 16
         out_channels = 1
-        self.conv_final = _conv_block_2(in_channels, out_channels, nn.ReLU(), kernel_size=1) # Drop down to 1 channel; image size should now be patch_size * patch_size
+        self.conv_final = _conv_block_2(self.final_conv_in_channels, out_channels, nn.ReLU(), kernel_size=1) # Drop down to 1 channel; image size should now be patch_size * patch_size
         self.patch_size = patch_size
 
     def forward(self, x):
@@ -257,8 +257,8 @@ class _SegMap_TransConv(nn.Module):
             patch_segmap = self.conv_finalbridge(patch_segmap)
             patch_segmap = self.final_mlp1(patch_segmap.reshape((patch_segmap.size(0), patch_segmap.size(1)*patch_segmap.size(2)*patch_segmap.size(3))))
             patch_segmap = self.final_mlp2(patch_segmap)
-            patch_segmap = self.conv_final(patch_segmap)
-            segmentation_patches_out[:, p, :, :, :] = patch_segmap.reshape(patch_segmap.size(0), 1, self.patch_size, self.patch_size)
+            patch_segmap = self.conv_final(patch_segmap.reshape(patch_segmap.size(0), self.final_conv_in_channels, self.patch_size, self.patch_size))
+            segmentation_patches_out[:, p, :, :, :] = patch_segmap
         return out_segmaps
 
 class VisionTransformer(nn.Module):
