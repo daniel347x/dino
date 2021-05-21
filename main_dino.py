@@ -373,13 +373,14 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
             # Collator is smart enough to return an extra dimension BEFORE the batch dimension when the dataset returns a list of items for one sample
 
             # For each of IMAGES, SEGMAPS, and WEIGHTS:
-            # DATALOADER returns a LIST of batch items of length BS,
-            # and DATASET returns a LIST of tensors for each batch item of length NCROPS,
-            # which the DATALOADER converts into a TENSOR of that same length
+            # DATASET returns a LIST of tensors for each batch item of length NCROPS,
+            # but the DATALOADER REVERSES the order of items it returns
+            # and returns a LIST of length NCROPS,
+            # with each item of the list being a TENSOR of length BS.
             # (boxes has not been processed properly anywhere and is ignored).
             # Ignoring whether list or tensor, the shape of images, etc. is therefore
             # (channels is 3 for images, 4 for segmaps (one per segmentation class, inc. none), and 1 for weights):
-            # batch size, ncrops, channels, image height, image width
+            # ncrops, batch size, channels, image height, image width
             images, segmaps, weights, boxes = data
 
             print(f'*************************************')
