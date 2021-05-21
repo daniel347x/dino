@@ -381,6 +381,15 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
             # ncrops, batch size, 3, image height, image width
             images, segmaps, weights, boxes = data
 
+            print(f'*************************************')
+            print(f'type(images): {type(images)}')
+            print(f'type(segmaps): {type(segmaps)}')
+            print(f'type(weights): {type(weights)}')
+            print(f'type(images[0]): {type(images[0])}')
+            print(f'type(segmaps[0]): {type(segmaps[0])}')
+            print(f'type(weights[0]): {type(weights[0])}')
+            print(f'*************************************')
+
             segmaps = [sm.cuda(non_blocking=True) for sm in segmaps]
             weights = [w.cuda(non_blocking=True) for w in weights]
         else:
@@ -471,7 +480,7 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
                 for bidx in range(bs):
                     for seg_class_idx in range(n_segmaps):
                         if seg_loss is None:
-                            seg_loss = lambda_seg * loss_func(weights[idx][bidx] * segmaps_[seg_class_idx][idx][bidx], weights[idx][bidx] * segmaps[idx][bidx][seg_class_idx])
+                            seg_loss  = lambda_seg * loss_func(weights[idx][bidx] * segmaps_[seg_class_idx][idx][bidx], weights[idx][bidx] * segmaps[idx][bidx][seg_class_idx])
                         else:
                             seg_loss += lambda_seg * loss_func(weights[idx][bidx] * segmaps_[seg_class_idx][idx][bidx], weights[idx][bidx] * segmaps[idx][bidx][seg_class_idx])
                     if DebugLabels:
