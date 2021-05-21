@@ -387,10 +387,14 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
                 param_group["weight_decay"] = wd_schedule[it]
 
         # move images to gpu
+        print(f'***************************')
+        print(f'INCOMING BATCH SIZE {len(images)}')
+        print(f'***************************')
+        assert False
         images = [im.cuda(non_blocking=True) for im in images]
-        print(f'******************************')
-        print(f'length of images input: {len(images)}')
-        print(f'******************************')
+        # print(f'******************************')
+        # print(f'length of images input: {len(images)}')
+        # print(f'******************************')
 
         DebugLabels = False
 
@@ -417,13 +421,15 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
                 # One per segmentation class
                 n_segmaps = len(segmaps_)
                 for segmap_ in segmaps_:
-                    print(f'******************************')
-                    print(f'length of segmap_ output: {len(segmap_)}')
-                    print(f'******************************')
+                    # print(f'******************************')
+                    # print(f'length of segmap_ output: {len(segmap_)}')
+                    # print(f'******************************')
                     # print(f'******************************')
                     # print(f'In main, loop: type(segmap_): {type(segmap_)}')
                     # print(f'******************************')
-                    segmap_ = segmap_.chunk(len(images))
+                    # segmap_ = segmap_.chunk(len(images))
+                    bs =
+                    segmap_ = [segmap_[b*bs:(b+1*bs)] for b in range(ncrops)]
                     segmaps_tmp_.append(segmap_)
                 segmaps_ = segmaps_tmp_
 
