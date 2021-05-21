@@ -241,6 +241,7 @@ class _SegMap_TransConv(nn.Module):
         out_segmaps = self.bridge2(bridge)
         patch_count = out_segmaps.size(1)
         out_segmaps = out_segmaps.reshape((out_segmaps.size(0), patch_count, self.start_channels, 1, 1))
+        # bs * ncrops, patch count, 1 channel, patch size, patch size
         segmentation_patches_out = torch.zeros((out_segmaps.size(0), patch_count, 1, self.patch_size, self.patch_size)).to(x.device)
         for p in range(patch_count):
             patch_segmap = out_segmaps[:, p, :, :, :]
@@ -369,11 +370,16 @@ class VisionTransformer(nn.Module):
             segmentations = []
             for seg_out in self.seg_outs:
                 segmentation_pieces = seg_out(segmap_input)
+                # bs * ncrops, 1 channel, full image height, full image width
                 segmentation = torch.tensor((segmentation_pieces.size(0), 1, self.num_patches_h * self.patch_size, self.num_patches_w * self.patch_size)).to(x.device)
                 # Merge pieces into a single image
                 for h in range(self.num_patches_h):
                     for w in range(self.num_patches_w):
                         current_piece = h * self.num_patches_w + w
+                        print(f'**********************************************')
+                        print(f'segmentation.shape: {segmentation.shape}')
+                        print(f'segmentation_pieces.shape: {segmentation_pieces.shape}')
+                        print(f'**********************************************')
                         segmentation[:, 0, h * self.patch_size : (h+1) * self.patch_size, w * self.patch_size : (w+1) * self.patch_size] = segmentation_pieces[:, current_piece, :, :]
                 # each segmentation is now (batch_size * ncrops) in length,
                 # because PyTorch merged the 'ncrops' list dimension and the 'batch_size' tensor dimension
