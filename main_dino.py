@@ -451,15 +451,33 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
                 #    ... data order for first dimension is:
                 #   [BS_ncrop_1, BS_ncrop_2, ...]
                 ##################################
-                student_output, *segmaps_ = student_output
+                student_output, segmaps_0, segmaps_1, segmaps_2, segmaps_3 = student_output
 
                 print(f'*************************************')
-                print(f'OUT type(segmaps_): {type(segmaps_)}')
-                print(f'OUT type(segmaps_[0]): {type(segmaps_[0])}')
-                print(f'OUT type(segmaps_[0][0]): {type(segmaps_[0][0])}')
-                print(f'OUT len(segmaps_): {len(segmaps_)}')
-                print(f'OUT len(segmaps_[0]): {len(segmaps_[0])}')
-                print(f'OUT len(segmaps_[0][0]): {len(segmaps_[0][0])}')
+                print(f'OUT type(segmaps_0): {type(segmaps_)}')
+                print(f'OUT type(segmaps_0[0]): {type(segmaps_[0])}')
+                print(f'OUT type(segmaps_0[0][0]): {type(segmaps_[0][0])}')
+                print(f'OUT len(segmaps_0): {len(segmaps_)}')
+                print(f'OUT len(segmaps_0[0]): {len(segmaps_[0])}')
+                print(f'OUT len(segmaps_0[0][0]): {len(segmaps_[0][0])}')
+                print(f'OUT type(segmaps_1): {type(segmaps_)}')
+                print(f'OUT type(segmaps_1[0]): {type(segmaps_[0])}')
+                print(f'OUT type(segmaps_1[0][0]): {type(segmaps_[0][0])}')
+                print(f'OUT len(segmaps_1): {len(segmaps_)}')
+                print(f'OUT len(segmaps_1[0]): {len(segmaps_[0])}')
+                print(f'OUT len(segmaps_1[0][0]): {len(segmaps_[0][0])}')
+                print(f'OUT type(segmaps_2): {type(segmaps_)}')
+                print(f'OUT type(segmaps_2[0]): {type(segmaps_[0])}')
+                print(f'OUT type(segmaps_2[0][0]): {type(segmaps_[0][0])}')
+                print(f'OUT len(segmaps_2): {len(segmaps_)}')
+                print(f'OUT len(segmaps_2[0]): {len(segmaps_[0])}')
+                print(f'OUT len(segmaps_2[0][0]): {len(segmaps_[0][0])}')
+                print(f'OUT type(segmaps_3): {type(segmaps_)}')
+                print(f'OUT type(segmaps_3[0]): {type(segmaps_[0])}')
+                print(f'OUT type(segmaps_3[0][0]): {type(segmaps_[0][0])}')
+                print(f'OUT len(segmaps_3): {len(segmaps_)}')
+                print(f'OUT len(segmaps_3[0]): {len(segmaps_[0])}')
+                print(f'OUT len(segmaps_3[0][0]): {len(segmaps_[0][0])}')
                 print(f'*************************************')
 
 
