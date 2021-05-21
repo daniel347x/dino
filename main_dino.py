@@ -376,7 +376,10 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
             # for each of IMAGES, SEGMAPS, and WEIGHTS:
             # DATALOADER returns a LIST of batch items of length BS,
             # and DATASET returns a LIST of tensors for each batch item of length NCROPS,
-            # and DATALOADER is smart enough to combine this LIST of TENSORS returned by the dataset for each BATCH ITEM
+            # and DATALOADER is smart enough to combine this LIST of TENSORS returned by the dataset
+            # in conjunction with the LIST of BATCH ITEMS it returns,
+            # into a LIST of BATCH ITEMS where each BATCH ITEM is a TENSOR of LENGTH
+            # corresponding to the LENGTH of the LIST returned for each BATCH ITEM by the DATASET.
             # by CONVERTING it to a SINGLE TENSOR whose size is the product BS * NCROPS, [BS-ncrop-1, BS-ncrop-2, ...]
             # so images is a LIST OF LISTS:
             # The first list has length ncrops.
@@ -396,6 +399,9 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
             print(f'type(images[0]): {type(images[0])}')
             print(f'type(segmaps[0]): {type(segmaps[0])}')
             print(f'type(weights[0]): {type(weights[0])}')
+            print(f'len(images[0]): {len(images[0])}')
+            print(f'len(segmaps[0]): {len(segmaps[0])}')
+            print(f'len(weights[0]): {len(weights[0])}')
             print(f'*************************************')
 
             print(f'*********************************')
