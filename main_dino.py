@@ -485,29 +485,32 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
                 # print(f'In main: type(segmaps_): {type(segmaps_)}')
                 # print(f'In main: type(segmaps_[0]): {type(segmaps_[0])}')
                 # print(f'******************************')
-                segmaps_tmp_ = []
+                ncrops = len(images)
+                bs = len(images[0])
+                segmaps_ = []
                 # One per segmentation class
-                n_segmaps = len(segmaps_)
-                for segmap_ in segmaps_:
-                    # print(f'******************************')
-                    # print(f'length of segmap_ output: {len(segmap_)}')
-                    # print(f'******************************')
-                    # print(f'******************************')
-                    # print(f'In main, loop: type(segmap_): {type(segmap_)}')
-                    # print(f'******************************')
-                    # segmap_ = segmap_.chunk(len(images))
+                n_segmaps = 4 # trickiness with parallelization and return values in unpacked lists - for now, hardcode
+                # for segmap_ in segmaps_:
 
-                    # First dimension was passed as ncrops by dataset, second dimension is this process's batch size in DDP
-                    ncrops = len(images)
-                    bs = len(images[0])
+                # print(f'******************************')
+                # print(f'length of segmap_ output: {len(segmap_)}')
+                # print(f'******************************')
+                # print(f'******************************')
+                # print(f'In main, loop: type(segmap_): {type(segmap_)}')
+                # print(f'******************************')
+                # segmap_ = segmap_.chunk(len(images))
 
-                    # segmap_ arrives as list because it was passed as list
-                    # The following is the equivalent of: segmap_ = segmap_.chunk(ncrops)
-                    # ... resulting in a LIST of length 'ncrops', with each element having length 'batch size'
-                    segmap_ = [segmap_[b*bs:(b+1*bs)] for b in range(ncrops)]
+                # First dimension was passed as ncrops by dataset, second dimension is this process's batch size in DDP
 
-                    segmaps_tmp_.append(segmap_)
-                segmaps_ = segmaps_tmp_
+                # segmap_ arrives as list because it was passed as list
+                # The following is the equivalent of: segmap_ = segmap_.chunk(ncrops)
+                # ... resulting in a LIST of length 'ncrops', with each element having length 'batch size'
+                # segmap_ = [segmap_[b*bs:(b+1*bs)] for b in range(ncrops)]
+
+                segmap_ = [segmaps_0[crop_idx*bs:(crop_idx+1)*bs] for crop_idx in range(ncrops)]
+                segmaps_.append(segmap_)
+
+                # segmaps_ = segmaps_tmp_
 
             loss = dino_loss(student_output, teacher_output, epoch)
             if DebugLabels:
