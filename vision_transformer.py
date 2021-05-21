@@ -241,7 +241,7 @@ class _SegMap_TransConv(nn.Module):
         out_segmaps = self.bridge2(bridge)
         patch_count = out_segmaps.size(1)
         out_segmaps = out_segmaps.reshape((out_segmaps.size(0), patch_count, self.start_channels, 1, 1))
-        segmentation_patches_out = torch.zeros((out_segmaps.size(0), patch_count, out_segmaps.size(2), out_segmaps.size(3), out_segmaps.size(4))).to(x.device)
+        segmentation_patches_out = torch.zeros((out_segmaps.size(0), patch_count, 1, self.patch_size, self.patch_size)).to(x.device)
         for p in range(patch_count):
             patch_segmap = out_segmaps[:, p, :, :, :]
             if self.conv1:
@@ -259,7 +259,7 @@ class _SegMap_TransConv(nn.Module):
             patch_segmap = self.final_mlp2(patch_segmap)
             patch_segmap = self.conv_final(patch_segmap.reshape(patch_segmap.size(0), self.final_conv_in_channels, self.patch_size, self.patch_size))
             segmentation_patches_out[:, p, :, :, :] = patch_segmap
-        return out_segmaps
+        return segmentation_patches_out
 
 class VisionTransformer(nn.Module):
     """ Vision Transformer """
@@ -369,7 +369,7 @@ class VisionTransformer(nn.Module):
             segmentations = []
             for seg_out in self.seg_outs:
                 segmentation_pieces = seg_out(segmap_input)
-                segmentation = torch.tensor((segmentation_piece.size(0), 1, self.num_patches_h * self.patch_size, self.num_patches_w * self.patch_size)).to(x.device)
+                segmentation = torch.tensor((segmentation_pieces.size(0), 1, self.num_patches_h * self.patch_size, self.num_patches_w * self.patch_size)).to(x.device)
                 # Merge pieces into a single image
                 for h in range(self.num_patches_h):
                     for w in range(self.num_patches_w):
