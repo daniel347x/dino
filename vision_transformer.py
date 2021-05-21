@@ -369,9 +369,10 @@ class VisionTransformer(nn.Module):
             segmap_input = x[:, 1:, :]
             segmentations = []
             for seg_out in self.seg_outs:
+                # bs * ncrops, patch count, 1 channel, patch size, patch size
                 segmentation_pieces = seg_out(segmap_input)
                 # bs * ncrops, 1 channel, full image height, full image width
-                segmentation = torch.tensor((segmentation_pieces.size(0), 1, self.num_patches_h * self.patch_size, self.num_patches_w * self.patch_size)).to(x.device)
+                segmentation = torch.zeros((segmentation_pieces.size(0), 1, self.num_patches_h * self.patch_size, self.num_patches_w * self.patch_size)).to(x.device)
                 # Merge pieces into a single image
                 for h in range(self.num_patches_h):
                     for w in range(self.num_patches_w):
