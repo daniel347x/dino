@@ -376,19 +376,24 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
             # DATALOADER returns a LIST of batch items,
             # and DATASET returns a LIST for each batch item,
             # so images is a LIST OF LISTS:
-            # The first list has length ncrops
-            # Each list element has length batch size
-            # ncrops, batch size, 3, image height, image width
+            # The first list has length ncrops.
+            # Each list element has length batch size.
+            # Each batch item is a tensor.
+            # The same applies to segmaps and weights.
+            # (boxes has not been processed properly anywhere and is ignored)
+            # Ignoring whether list or tensor, the shape of images, etc. is:
+            # ncrops, batch size, channels, image height, image width
+            # (channels is 3 for images, 4 for segmaps (one per segmentation class, inc. none), and 1 for weights)
             images, segmaps, weights, boxes = data
 
-            print(f'*************************************')
-            print(f'type(images): {type(images)}')
-            print(f'type(segmaps): {type(segmaps)}')
-            print(f'type(weights): {type(weights)}')
-            print(f'type(images[0]): {type(images[0])}')
-            print(f'type(segmaps[0]): {type(segmaps[0])}')
-            print(f'type(weights[0]): {type(weights[0])}')
-            print(f'*************************************')
+            # print(f'*************************************')
+            # print(f'type(images): {type(images)}')
+            # print(f'type(segmaps): {type(segmaps)}')
+            # print(f'type(weights): {type(weights)}')
+            # print(f'type(images[0]): {type(images[0])}')
+            # print(f'type(segmaps[0]): {type(segmaps[0])}')
+            # print(f'type(weights[0]): {type(weights[0])}')
+            # print(f'*************************************')
 
             segmaps = [sm.cuda(non_blocking=True) for sm in segmaps]
             weights = [w.cuda(non_blocking=True) for w in weights]
@@ -433,10 +438,10 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
             if args.inc_segmentation:
                 student_output, *segmaps_ = student_output
 
-                print(f'*************************************')
-                print(f'OUT type(segmaps_[0]): {type(segmaps_[0])}')
-                print(f'OUT type(segmaps_[0][0]): {type(segmaps_[0][0])}')
-                print(f'*************************************')
+                # print(f'*************************************')
+                # print(f'OUT type(segmaps_[0]): {type(segmaps_[0])}')
+                # print(f'OUT type(segmaps_[0][0]): {type(segmaps_[0][0])}')
+                # print(f'*************************************')
 
 
                 # print(f'******************************')
@@ -489,6 +494,14 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
                         if seg_loss is None:
                             seg_loss  = lambda_seg * loss_func(weights[idx][bidx] * segmaps_[seg_class_idx][idx][bidx], weights[idx][bidx] * segmaps[idx][bidx][seg_class_idx])
                         else:
+                            print(f'**************************')
+                            print(f'type(weights) {type(weights)}')
+                            print(f'len(weights) {len(weights)}')
+                            print(f'type(segmaps_) {type(segmaps_)}')
+                            print(f'len(segmaps_) {len(segmaps_)}')
+                            print(f'type(segmaps) {type(segmaps)}')
+                            print(f'len(segmaps) {len(segmaps)}')
+                            print(f'**************************')
                             seg_loss += lambda_seg * loss_func(weights[idx][bidx] * segmaps_[seg_class_idx][idx][bidx], weights[idx][bidx] * segmaps[idx][bidx][seg_class_idx])
                     if DebugLabels:
                         print(f'seg_loss: {seg_loss}')
