@@ -238,15 +238,15 @@ if __name__ == '__main__':
     if args.inc_segmentation:
         pil_imgs_segmaps = []
         segmap_idx = 0
-        pil_img = display_instances(image, segmaps_0[0].numpy(), fname=tmp_filename, blur=False, include_img=False)
+        pil_img = display_instances(image, segmaps_0[0].squeeze(0).numpy(), fname=tmp_filename, blur=False, include_img=False)
         pil_imgs_segmaps.append(pil_img)
         segmap_idx = 1
-        pil_img = display_instances(image, segmaps_1[0].numpy(), fname=tmp_filename, blur=False, include_img=False)
+        pil_img = display_instances(image, segmaps_1[0].squeeze(0).numpy(), fname=tmp_filename, blur=False, include_img=False)
         pil_imgs_segmaps.append(pil_img)
         segmap_idx = 2
-        pil_img = display_instances(image, segmaps_2[0].numpy(), fname=tmp_filename, blur=False, include_img=False)
+        pil_img = display_instances(image, segmaps_2[0].squeeze(0).numpy(), fname=tmp_filename, blur=False, include_img=False)
         pil_imgs_segmaps.append(pil_img)
         segmap_idx = 3
-        pil_img = display_instances(image, segmaps_3[0].numpy(), fname=tmp_filename, blur=False, include_img=False)
+        pil_img = display_instances(image, segmaps_3[0].squeeze(0).numpy(), fname=tmp_filename, blur=False, include_img=False)
         pil_imgs_segmaps.append(pil_img)
         grid = create_save_image_grid(pil_imgs_segmaps, os.path.join(args.output_dir, f"img_grid_segmaps.png"), rows=2, cols=2)
