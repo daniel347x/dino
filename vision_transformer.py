@@ -476,10 +476,10 @@ class DINOHead(nn.Module):
         x = nn.functional.normalize(x, dim=-1, p=2)
         x = self.last_layer(x)
         if self.use_segmap:
-            print(f'******************************')
-            print(f'In DINOHead: type(segmaps): {type(segmaps)}')
-            print(f'In DINOHead: type(segmaps[0]): {type(segmaps[0])}')
-            print(f'******************************')
+            # print(f'******************************')
+            # print(f'In DINOHead: type(segmaps): {type(segmaps)}')
+            # print(f'In DINOHead: type(segmaps[0]): {type(segmaps[0])}')
+            # print(f'******************************')
             return x, segmaps
         else:
             return x
