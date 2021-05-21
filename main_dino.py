@@ -40,7 +40,7 @@ from deepink.segmentation.config import MCv16_nma_b as config
 from deepink.segmentation.data_loaders import PageLoader
 from deepink.core.utils import load_pickle
 
-DOCS = 'training'
+DOCS = 'testing'
 testing_dataset_path = config['test_files']
 training_dataset_path = config['train_files']
 anchors = config['anchors_file']
@@ -373,8 +373,11 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
             # Collator is smart enough to return an extra dimension BEFORE the batch dimension when the dataset returns a list of items for one sample
 
             # images:
-            # DATALOADER returns a LIST of batch items,
-            # and DATASET returns a LIST for each batch item,
+            # for each of IMAGES, SEGMAPS, and WEIGHTS:
+            # DATALOADER returns a LIST of batch items of length BS,
+            # and DATASET returns a LIST of tensors for each batch item of length NCROPS,
+            # and DATALOADER is smart enough to combine this LIST of TENSORS returned by the dataset for each BATCH ITEM
+            # by CONVERTING it to a SINGLE TENSOR whose size is the product BS * NCROPS, [BS-ncrop-1, BS-ncrop-2, ...]
             # so images is a LIST OF LISTS:
             # The first list has length ncrops.
             # Each list element has length batch size.
@@ -386,14 +389,14 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
             # (channels is 3 for images, 4 for segmaps (one per segmentation class, inc. none), and 1 for weights)
             images, segmaps, weights, boxes = data
 
-            # print(f'*************************************')
-            # print(f'type(images): {type(images)}')
-            # print(f'type(segmaps): {type(segmaps)}')
-            # print(f'type(weights): {type(weights)}')
-            # print(f'type(images[0]): {type(images[0])}')
-            # print(f'type(segmaps[0]): {type(segmaps[0])}')
-            # print(f'type(weights[0]): {type(weights[0])}')
-            # print(f'*************************************')
+            print(f'*************************************')
+            print(f'type(images): {type(images)}')
+            print(f'type(segmaps): {type(segmaps)}')
+            print(f'type(weights): {type(weights)}')
+            print(f'type(images[0]): {type(images[0])}')
+            print(f'type(segmaps[0]): {type(segmaps[0])}')
+            print(f'type(weights[0]): {type(weights[0])}')
+            print(f'*************************************')
 
             print(f'*********************************')
             print(f'INCOMING: type(segmaps[0]): {type(segmaps[0])}')
