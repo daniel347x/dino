@@ -428,7 +428,7 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
                     # print(f'In main, loop: type(segmap_): {type(segmap_)}')
                     # print(f'******************************')
                     # segmap_ = segmap_.chunk(len(images))
-                    bs =
+                    # bs =
                     segmap_ = [segmap_[b*bs:(b+1*bs)] for b in range(ncrops)]
                     segmaps_tmp_.append(segmap_)
                 segmaps_ = segmaps_tmp_
