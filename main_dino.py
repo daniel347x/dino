@@ -509,6 +509,12 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
 
                 segmap_ = [segmaps_0[crop_idx*bs:(crop_idx+1)*bs] for crop_idx in range(ncrops)]
                 segmaps_.append(segmap_)
+                segmap_ = [segmaps_1[crop_idx*bs:(crop_idx+1)*bs] for crop_idx in range(ncrops)]
+                segmaps_.append(segmap_)
+                segmap_ = [segmaps_2[crop_idx*bs:(crop_idx+1)*bs] for crop_idx in range(ncrops)]
+                segmaps_.append(segmap_)
+                segmap_ = [segmaps_3[crop_idx*bs:(crop_idx+1)*bs] for crop_idx in range(ncrops)]
+                segmaps_.append(segmap_)
 
                 # segmaps_ = segmaps_tmp_
 
