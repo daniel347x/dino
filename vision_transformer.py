@@ -480,7 +480,7 @@ class DINOHead(nn.Module):
 
     def forward(self, x):
         if self.use_segmap:
-            x, *segmaps = x
+            x, segmaps_0, segmaps_1, segmaps_2, segmaps_3 = x
         x = self.mlp(x)
         x = nn.functional.normalize(x, dim=-1, p=2)
         x = self.last_layer(x)
@@ -489,6 +489,6 @@ class DINOHead(nn.Module):
             # print(f'In DINOHead: type(segmaps): {type(segmaps)}')
             # print(f'In DINOHead: type(segmaps[0]): {type(segmaps[0])}')
             # print(f'******************************')
-            return x, segmaps
+            return x, segmaps_0, segmaps_1, segmaps_2, segmaps_3
         else:
             return x
