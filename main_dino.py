@@ -432,12 +432,12 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
         # teacher and student forward passes + compute dino loss
         with torch.cuda.amp.autocast(fp16_scaler is not None):
 
-            ##################################
-            # INPUT: NCROPS, batch_size, image
-            ##################################
-            # assert False, f'Notice the following: len(images) is the number of crops: {len(images)}\nWhereas each crop has length batch_size; here is the first crop's batch (global crop #1): len(images[0]): {len(images[0])}\nAnd here is the second crop's batch (global crop #2): len(images[1]): {len(images[1])}'
             # Note: Because it is a LIST of tensors passed to the forward() function,
             # PyTorch is smart enough to just increase the batch size accordingly
+            ##################################
+            # INPUT: NCROPS, batch_size, image
+            # (see note above)
+            ##################################
             teacher_output = teacher(images[:2])  # only the 2 global views pass through the teacher
             student_output = student(images)
 

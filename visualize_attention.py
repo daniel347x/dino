@@ -192,9 +192,9 @@ if __name__ == '__main__':
     n_patches = h_featmap * w_featmap
 
     if args.inc_segmentation:
-        attentions, segmaps = model.get_last_selfattention(img.to(device))
+        attentions, segmaps_0, segmaps_1, segmaps_2, segmaps_3 = model.get_last_selfattention(img.to(device))
         # model.out_dim == 4: hard-coded currently to "seg_classes": ["None", "Chart", "List", "Table"] from the config settings
-        assert segmaps.shape == (1, model.out_dim, h, w)
+        assert segmaps_0.shape == (1, 1, h, w) # etc
     else:
         attentions = model.get_last_selfattention(img.to(device))
 
@@ -238,15 +238,15 @@ if __name__ == '__main__':
     if args.inc_segmentation:
         pil_imgs_segmaps = []
         segmap_idx = 0
-        pil_img = display_instances(image, segmaps[0, segmap_idx].numpy(), fname=tmp_filename, blur=False, include_img=False)
+        pil_img = display_instances(image, segmaps_0[0].numpy(), fname=tmp_filename, blur=False, include_img=False)
         pil_imgs_segmaps.append(pil_img)
         segmap_idx = 1
-        pil_img = display_instances(image, segmaps[0, segmap_idx].numpy(), fname=tmp_filename, blur=False, include_img=False)
+        pil_img = display_instances(image, segmaps_1[0].numpy(), fname=tmp_filename, blur=False, include_img=False)
         pil_imgs_segmaps.append(pil_img)
         segmap_idx = 2
-        pil_img = display_instances(image, segmaps[0, segmap_idx].numpy(), fname=tmp_filename, blur=False, include_img=False)
+        pil_img = display_instances(image, segmaps_2[0].numpy(), fname=tmp_filename, blur=False, include_img=False)
         pil_imgs_segmaps.append(pil_img)
         segmap_idx = 3
-        pil_img = display_instances(image, segmaps[0, segmap_idx].numpy(), fname=tmp_filename, blur=False, include_img=False)
+        pil_img = display_instances(image, segmaps_3[0].numpy(), fname=tmp_filename, blur=False, include_img=False)
         pil_imgs_segmaps.append(pil_img)
         grid = create_save_image_grid(pil_imgs_segmaps, os.path.join(args.output_dir, f"img_grid_segmaps.png"), rows=2, cols=2)

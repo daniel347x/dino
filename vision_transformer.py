@@ -381,16 +381,7 @@ class VisionTransformer(nn.Module):
                 # each segmentation is now (batch_size * ncrops) in length,
                 # because PyTorch merged the 'ncrops' list dimension and the 'batch_size' tensor dimension
                 # that was given as input to forward()
-                # print(f'****************************************')
-                # print(f'IN FORWARD A')
-                # print(f'len(segmentation) {len(segmentation)}')
-                # print(f'****************************************')
                 segmentations.append(segmentation)
-            # print(f'****************************************')
-            # print(f'IN FORWARD B')
-            # print(f'len(segmentations) {len(segmentations)}')
-            # print(f'len(segmentations[0]) {len(segmentations[0])}')
-            # print(f'****************************************')
             return vit_cls_output_logits, segmentations[0], segmentations[1], segmentations[2], segmentations[3]
         else:
             return vit_cls_output_logits
@@ -410,9 +401,19 @@ class VisionTransformer(nn.Module):
                     return attn
         x, attn = blk_output
         x = self.norm(x)
-        bridge = self.bridge(x[:, 1:, :])
-        segmaps = bridge.reshape((bridge.size(0), self.out_dim, self.img_size[0], self.img_size[1]))
-        return attn, segmaps
+
+        segmap_input = x[:, 1:, :]
+        segmentations = []
+        for seg_out in self.seg_outs:
+            segmentation_pieces = seg_out(segmap_input)
+            segmentation = torch.zeros((segmentation_pieces.size(0), 1, self.num_patches_h * self.patch_size, self.num_patches_w * self.patch_size)).to(x.device)
+            for h in range(self.num_patches_h):
+                for w in range(self.num_patches_w):
+                    current_piece = h * self.num_patches_w + w
+                    segmentation[:, 0, h * self.patch_size : (h+1) * self.patch_size, w * self.patch_size : (w+1) * self.patch_size] = segmentation_pieces[:, current_piece, 0, :, :]
+            segmentations.append(segmentation)
+
+        return attn, segmentations[0], segmentations[1], segmentations[2], segmentations[3]
 
 
     def get_intermediate_layers(self, x, n=1):
