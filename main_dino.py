@@ -370,14 +370,25 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
         if args.inc_segmentation:
             # segmentation SSL
             # convert inputs to PIL RGB image in BW
+            # Collator is smart enough to return an extra dimension BEFORE the batch dimension when the dataset returns a list of items for one sample
+
+            # images:
+            # DATALOADER returns a LIST of batch items,
+            # and DATASET returns a LIST for each batch item,
+            # so images is a LIST OF LISTS:
+            # The first list has length ncrops
+            # Each list element has length batch size
+            # ncrops, batch size, 3, image height, image width
             images, segmaps, weights, boxes = data
+
             segmaps = [sm.cuda(non_blocking=True) for sm in segmaps]
             weights = [w.cuda(non_blocking=True) for w in weights]
-            # assert False, f'A1: len(segmaps): {len(segmaps)}\nlen(segmaps[0]): {len(segmaps[0])}\nlen(segmaps[1]): {len(segmaps[1])}'
         else:
-            images, _ = data
             # Collator is smart enough to return an extra dimension BEFORE the batch dimension when the dataset returns a list of items for one sample
-            # assert False, f'B: len(images): {len(images)}\nlen(images[0]): {len(images[0])}\nlen(images[1]): {len(images[1])}'
+
+            # images:
+            # ncrops, batch size, 3, image height, image width
+            images, _ = data
 
         # update weight decay and learning rate according to their schedule
         it = len(data_loader) * epoch + it  # global training iteration
@@ -387,10 +398,9 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
                 param_group["weight_decay"] = wd_schedule[it]
 
         # move images to gpu
-        print(f'***************************')
-        print(f'INCOMING BATCH SIZE {len(images)}')
-        print(f'***************************')
-        assert False
+        # print(f'***************************')
+        # print(f'INCOMING BATCH SIZE {len(images)}')
+        # print(f'***************************')
         images = [im.cuda(non_blocking=True) for im in images]
         # print(f'******************************')
         # print(f'length of images input: {len(images)}')
@@ -428,8 +438,16 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
                     # print(f'In main, loop: type(segmap_): {type(segmap_)}')
                     # print(f'******************************')
                     # segmap_ = segmap_.chunk(len(images))
-                    # bs =
+
+                    # First dimension was passed as ncrops by dataset, second dimension is this process's batch size in DDP
+                    ncrops = len(images)
+                    bs = len(images[0])
+
+                    # segmap_ arrives as list because it was passed as list
+                    # The following is the equivalent of: segmap_ = segmap_.chunk(ncrops)
+                    # ... resulting in a LIST of length 'ncrops', with each element having length 'batch size'
                     segmap_ = [segmap_[b*bs:(b+1*bs)] for b in range(ncrops)]
+
                     segmaps_tmp_.append(segmap_)
                 segmaps_ = segmaps_tmp_
 
