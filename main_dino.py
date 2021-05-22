@@ -33,8 +33,7 @@ from torchvision import models as torchvision_models
 import utils
 import vision_transformer as vits
 from vision_transformer import DINOHead
-
-
+import torch.autograd.profiler as profiler
 
 from deepink.segmentation.config import MCv16_nma_b as config
 from deepink.segmentation.data_loaders import PageLoader
@@ -154,6 +153,7 @@ def get_args_parser():
     parser.add_argument("--local_rank", default=0, type=int, help="Please ignore and do not set this argument.")
     parser.add_argument('--device', default="cuda", type=str, help='CUDA or CPU?')
     parser.add_argument('--inc_segmentation', type=utils.bool_flag, default=False, help="""Whether or not to incorporate an SSL segmentation loss on the student""")
+    parser.add_argument('--profile', type=utils.bool_flag, default=False, help="""Profile a single call to the model.""")
     return parser
 
 
@@ -383,25 +383,6 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
             # ncrops, batch size, channels, image height, image width
             images, segmaps, weights, boxes = data
 
-            # print(f'*************************************')
-            # print(f'type(images): {type(images)}')
-            # print(f'type(segmaps): {type(segmaps)}')
-            # print(f'type(weights): {type(weights)}')
-            # print(f'type(images[0]): {type(images[0])}')
-            # print(f'type(segmaps[0]): {type(segmaps[0])}')
-            # print(f'type(weights[0]): {type(weights[0])}')
-            # print(f'len(images): {len(images)}')
-            # print(f'len(segmaps): {len(segmaps)}')
-            # print(f'len(weights): {len(weights)}')
-            # print(f'len(images[0]): {len(images[0])}')
-            # print(f'len(segmaps[0]): {len(segmaps[0])}')
-            # print(f'len(weights[0]): {len(weights[0])}')
-            # print(f'*************************************')
-
-            # print(f'*********************************')
-            # print(f'INCOMING: type(segmaps[0]): {type(segmaps[0])}')
-            # print(f'*********************************')
-
             segmaps = [sm.cuda(non_blocking=True) for sm in segmaps]
             weights = [w.cuda(non_blocking=True) for w in weights]
         else:
@@ -419,13 +400,7 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
                 param_group["weight_decay"] = wd_schedule[it]
 
         # move images to gpu
-        # print(f'***************************')
-        # print(f'INCOMING BATCH SIZE {len(images)}')
-        # print(f'***************************')
         images = [im.cuda(non_blocking=True) for im in images]
-        # print(f'******************************')
-        # print(f'length of images input: {len(images)}')
-        # print(f'******************************')
 
         DebugLabels = False
 
@@ -438,8 +413,24 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
             # INPUT: NCROPS, batch_size, image
             # (see note above)
             ##################################
-            teacher_output = teacher(images[:2])  # only the 2 global views pass through the teacher
-            student_output = student(images)
+
+            if args.profile:
+                with profiler.profile(record_shapes=True) as prof:
+                    teacher_output = teacher(images[:2])  # only the 2 global views pass through the teacher
+                    print(f'******************')
+                    print(f'TEACHER')
+                    print(prof.key_averages(group_by_input_shape=True).table(sort_by="cpu_time_total", row_limit=10))
+                    print(f'******************')
+                with profiler.profile(record_shapes=True) as prof:
+                    student_output = student(images)
+                    print(f'******************')
+                    print(f'TEACHER')
+                    print(prof.key_averages(group_by_input_shape=True).table(sort_by="cpu_time_total", row_limit=10))
+                    print(f'******************')
+                assert False, f'Ending execution after profiling a single pass'
+            else:
+                teacher_output = teacher(images[:2])  # only the 2 global views pass through the teacher
+                student_output = student(images)
 
             # segmentation SSL
             if args.inc_segmentation:
@@ -453,52 +444,12 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
                 ##################################
                 student_output, segmaps_0, segmaps_1, segmaps_2, segmaps_3 = student_output
 
-                # print(f'*************************************')
-                # print(f'OUT type(segmaps_0): {type(segmaps_0)}')
-                # print(f'OUT type(segmaps_0[0]): {type(segmaps_0[0])}')
-                # print(f'OUT type(segmaps_0[0][0]): {type(segmaps_0[0][0])}')
-                # print(f'OUT len(segmaps_0): {len(segmaps_0)}')
-                # print(f'OUT len(segmaps_0[0]): {len(segmaps_0[0])}')
-                # print(f'OUT len(segmaps_0[0][0]): {len(segmaps_0[0][0])}')
-                # print(f'OUT type(segmaps_1): {type(segmaps_1)}')
-                # print(f'OUT type(segmaps_1[0]): {type(segmaps_1[0])}')
-                # print(f'OUT type(segmaps_1[0][0]): {type(segmaps_1[0][0])}')
-                # print(f'OUT len(segmaps_1): {len(segmaps_1)}')
-                # print(f'OUT len(segmaps_1[0]): {len(segmaps_1[0])}')
-                # print(f'OUT len(segmaps_1[0][0]): {len(segmaps_1[0][0])}')
-                # print(f'OUT type(segmaps_2): {type(segmaps_2)}')
-                # print(f'OUT type(segmaps_2[0]): {type(segmaps_2[0])}')
-                # print(f'OUT type(segmaps_2[0][0]): {type(segmaps_2[0][0])}')
-                # print(f'OUT len(segmaps_2): {len(segmaps_2)}')
-                # print(f'OUT len(segmaps_2[0]): {len(segmaps_2[0])}')
-                # print(f'OUT len(segmaps_2[0][0]): {len(segmaps_2[0][0])}')
-                # print(f'OUT type(segmaps_3): {type(segmaps_3)}')
-                # print(f'OUT type(segmaps_3[0]): {type(segmaps_3[0])}')
-                # print(f'OUT type(segmaps_3[0][0]): {type(segmaps_3[0][0])}')
-                # print(f'OUT len(segmaps_3): {len(segmaps_3)}')
-                # print(f'OUT len(segmaps_3[0]): {len(segmaps_3[0])}')
-                # print(f'OUT len(segmaps_3[0][0]): {len(segmaps_3[0][0])}')
-                # print(f'*************************************')
-
-
-                # print(f'******************************')
-                # print(f'In main: type(segmaps_): {type(segmaps_)}')
-                # print(f'In main: type(segmaps_[0]): {type(segmaps_[0])}')
-                # print(f'******************************')
                 ncrops = len(images)
                 bs = len(images[0])
                 segmaps_ = []
                 # One per segmentation class
                 n_segmaps = 4 # trickiness with parallelization and return values in unpacked lists - for now, hardcode
                 # for segmap_ in segmaps_:
-
-                # print(f'******************************')
-                # print(f'length of segmap_ output: {len(segmap_)}')
-                # print(f'******************************')
-                # print(f'******************************')
-                # print(f'In main, loop: type(segmap_): {type(segmap_)}')
-                # print(f'******************************')
-                # segmap_ = segmap_.chunk(len(images))
 
                 # First dimension was passed as ncrops by dataset, second dimension is this process's batch size in DDP
 
@@ -540,14 +491,6 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
                         if seg_loss is None:
                             seg_loss  = lambda_seg * loss_func(weights[idx][bidx] * segmaps_[seg_class_idx][idx][bidx], weights[idx][bidx] * segmaps[idx][bidx][seg_class_idx])
                         else:
-                            # print(f'**************************')
-                            # print(f'type(weights) {type(weights)}')
-                            # print(f'len(weights) {len(weights)}')
-                            # print(f'type(segmaps_) {type(segmaps_)}')
-                            # print(f'len(segmaps_) {len(segmaps_)}')
-                            # print(f'type(segmaps) {type(segmaps)}')
-                            # print(f'len(segmaps) {len(segmaps)}')
-                            # print(f'**************************')
                             seg_loss += lambda_seg * loss_func(weights[idx][bidx] * segmaps_[seg_class_idx][idx][bidx], weights[idx][bidx] * segmaps[idx][bidx][seg_class_idx])
                     if DebugLabels:
                         print(f'seg_loss: {seg_loss}')
