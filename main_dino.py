@@ -273,7 +273,10 @@ def train_dino(args):
         args.teacher_temp,
         args.warmup_teacher_temp_epochs,
         args.epochs,
-    ).cuda()
+    )
+
+    if args.profile is False:
+        dino_loss = dino_loss.cuda()
 
     # ============ preparing optimizer ... ============
     params_groups = utils.get_params_groups(student)
@@ -381,8 +384,9 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
             # ncrops, batch size, channels, image height, image width
             images, segmaps, weights, boxes = data
 
-            segmaps = [sm.cuda(non_blocking=True) for sm in segmaps]
-            weights = [w.cuda(non_blocking=True) for w in weights]
+            if args.profile is False:
+                segmaps = [sm.cuda(non_blocking=True) for sm in segmaps]
+                weights = [w.cuda(non_blocking=True) for w in weights]
         else:
             # Collator is smart enough to return an extra dimension BEFORE the batch dimension when the dataset returns a list of items for one sample
 
@@ -398,7 +402,8 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
                 param_group["weight_decay"] = wd_schedule[it]
 
         # move images to gpu
-        images = [im.cuda(non_blocking=True) for im in images]
+        if args.profile is False:
+            images = [im.cuda(non_blocking=True) for im in images]
 
         DebugLabels = False
 
@@ -539,7 +544,8 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
                     param_k.data.mul_(m).add_((1 - m) * param_q.detach().data)
 
         # logging
-        torch.cuda.synchronize()
+        if args.profile is False:
+            torch.cuda.synchronize()
         metric_logger.update(total_loss=total_loss.item())
         metric_logger.update(loss=loss.item())
         metric_logger.update(seg_loss=seg_loss.item())
