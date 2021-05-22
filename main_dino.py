@@ -418,18 +418,20 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
             ##################################
 
             if args.profile:
-                with profiler.profile(record_shapes=True) as prof:
+                with profiler.profile(record_shapes=True) as prof_teacher:
                     teacher_output = teacher(images[:2])  # only the 2 global views pass through the teacher
-                    print(f'******************')
-                    print(f'TEACHER')
-                    print(prof.key_averages(group_by_input_shape=True).table(sort_by="cpu_time_total", row_limit=10))
-                    print(f'******************')
-                with profiler.profile(record_shapes=True) as prof:
+                with profiler.profile(record_shapes=True) as prof_student:
                     student_output = student(images)
-                    print(f'******************')
-                    print(f'TEACHER')
-                    print(prof.key_averages(group_by_input_shape=True).table(sort_by="cpu_time_total", row_limit=10))
-                    print(f'******************')
+                print(f'******************')
+                print(f'TEACHER')
+                print(prof_teacher.key_averages(group_by_input_shape=True).table(sort_by="cpu_time_total", row_limit=10))
+                print(f'******************')
+                print('')
+                print('')
+                print(f'******************')
+                print(f'STUDENT')
+                print(prof_student.key_averages(group_by_input_shape=True).table(sort_by="cpu_time_total", row_limit=10))
+                print(f'******************')
                 assert False, f'Ending execution after profiling a single pass'
             else:
                 teacher_output = teacher(images[:2])  # only the 2 global views pass through the teacher
