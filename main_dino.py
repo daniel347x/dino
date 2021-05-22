@@ -315,6 +315,7 @@ def train_dino(args):
         optimizer=optimizer,
         fp16_scaler=fp16_scaler,
         dino_loss=dino_loss,
+        profile=args.profile,
     )
     start_epoch = to_restore["epoch"]
 

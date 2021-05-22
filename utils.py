@@ -119,7 +119,7 @@ def cancel_gradients_last_layer(epoch, model, freeze_last_layer):
             p.grad = None
 
 
-def restart_from_checkpoint(ckp_path, run_variables=None, **kwargs):
+def restart_from_checkpoint(ckp_path, run_variables=None, profile=False, **kwargs):
     """
     Re-start from checkpoint
     """
@@ -129,6 +129,9 @@ def restart_from_checkpoint(ckp_path, run_variables=None, **kwargs):
 
     # open checkpoint file
     checkpoint = torch.load(ckp_path, map_location="cpu")
+
+    if profile:
+        checkpoint = {k.replace("module.", ""): v for k, v in checkpoint.items()}
 
     # key is what to look for in the checkpoint file
     # value is the object to load
