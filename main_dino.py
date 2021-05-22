@@ -158,7 +158,8 @@ def get_args_parser():
 
 
 def train_dino(args):
-    utils.init_distributed_mode(args)
+    if args.profile is False:
+        utils.init_distributed_mode(args)
     utils.fix_random_seeds(args.seed)
     print("git:\n  {}\n".format(utils.get_sha()))
     print("\n".join("%s: %s" % (k, str(v)) for k, v in sorted(dict(vars(args)).items())))
@@ -172,9 +173,6 @@ def train_dino(args):
         to_pil=args.inc_segmentation,
         target_img_size=[256,192],
     )
-
-
-
 
     if args.inc_segmentation:
         dataset = PageLoader(
@@ -205,17 +203,6 @@ def train_dino(args):
         drop_last=True,
     )
     print(f"Data loaded: there are {len(dataset)} images.")
-
-
-
-
-
-
-
-
-
-
-
     # ============ building student and teacher networks ... ============
     # if the network is a vision transformer (i.e. deit_tiny, deit_small, vit_base)
     if args.arch in vits.__dict__.keys():
@@ -251,7 +238,7 @@ def train_dino(args):
     if args.device.lower() == 'cuda':
         student, teacher = student.cuda(), teacher.cuda()
     # synchronize batch norms (if any)
-    if utils.has_batchnorms(student):
+    if utils.has_batchnorms(student) and args.profile is False:
         student = nn.SyncBatchNorm.convert_sync_batchnorm(student)
         teacher = nn.SyncBatchNorm.convert_sync_batchnorm(teacher)
 
@@ -261,9 +248,13 @@ def train_dino(args):
     else:
         # teacher_without_ddp and teacher are the same thing
         teacher_without_ddp = teacher
-    student = nn.parallel.DistributedDataParallel(student, device_ids=[args.gpu])
-    # teacher and student start with the same weights
-    teacher_without_ddp.load_state_dict(student.module.state_dict())
+
+    if args.profile is False:
+        student = nn.parallel.DistributedDataParallel(student, device_ids=[args.gpu])
+        # teacher and student start with the same weights
+        teacher_without_ddp.load_state_dict(student.module.state_dict())
+    else:
+        teacher_without_ddp.load_state_dict(student.state_dict())
     # there is no backpropagation through the teacher, so no need for gradients
     for p in teacher.parameters():
         p.requires_grad = False
@@ -533,8 +524,12 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
         # EMA update for the teacher
         with torch.no_grad():
             m = momentum_schedule[it]  # momentum parameter
-            for param_q, param_k in zip(student.module.parameters(), teacher_without_ddp.parameters()):
-                param_k.data.mul_(m).add_((1 - m) * param_q.detach().data)
+            if args.profile is False:
+                for param_q, param_k in zip(student.module.parameters(), teacher_without_ddp.parameters()):
+                    param_k.data.mul_(m).add_((1 - m) * param_q.detach().data)
+            else:
+                for param_q, param_k in zip(student.parameters(), teacher_without_ddp.parameters()):
+                    param_k.data.mul_(m).add_((1 - m) * param_q.detach().data)
 
         # logging
         torch.cuda.synchronize()
