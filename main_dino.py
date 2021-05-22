@@ -29,6 +29,7 @@ import torch.backends.cudnn as cudnn
 import torch.nn.functional as F
 from torchvision import datasets, transforms
 from torchvision import models as torchvision_models
+from torch.utils.data.sampler import RandomSampler
 
 import utils
 import vision_transformer as vits
@@ -193,7 +194,11 @@ def train_dino(args):
         )
     else:
         dataset = datasets.ImageFolder(args.data_path, transform=transform)
-    sampler = torch.utils.data.DistributedSampler(dataset, shuffle=True)
+
+    if args.profile is False:
+        sampler = torch.utils.data.DistributedSampler(dataset, shuffle=True)
+    else:
+        sampler = RandomSampler(dataset)
     data_loader = torch.utils.data.DataLoader(
         dataset,
         sampler=sampler,
