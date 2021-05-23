@@ -380,7 +380,7 @@ class VisionTransformer(nn.Module):
         return self.pos_drop(x)
 
     def forward(self, x):
-        if self.use_conv_feature_space:
+        if self.include_conv_feature_space:
             x = self.cf_in1(x)
             x = self.cf_in2(x)
             x = self.cf_in3(x) # bs, 64, h, w
