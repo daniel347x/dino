@@ -283,9 +283,11 @@ class VisionTransformer(nn.Module):
             self.include_conv_feature_space = True
 
         if self.use_conv_feature_space:
-            self.cf_in1 = _conv_block(in_chans, 16, nn.ReLU(), 7, 1, 3)
-            self.cf_in2 = _conv_block(16, 32, nn.ReLU(), 5, 1, 2)
-            self.cf_in3 = _conv_block(32, 64, nn.ReLU(), 3, 1, 1)
+            # 256 x 192
+            self.cf_in1 = _conv_block(in_chans, 16, nn.ReLU(), 7, 1, 3) # 128 x 96
+            self.cf_in2 = _conv_block(16, 32, nn.ReLU(), 5, 1, 2) # 64 x 48
+            self.cf_in3 = _conv_block(32, 64, nn.ReLU(), 3, 1, 1) # 32 x 24
+            self.proj = Mlp(768, embed_dim)
             self.num_patches = 64
         else:
             self.patch_embed = PatchEmbed(
@@ -383,6 +385,7 @@ class VisionTransformer(nn.Module):
             x = self.cf_in2(x)
             x = self.cf_in3(x) # bs, 64, h, w
             bs, ch, h, w = x.shape
+            x = self.proj(x.flatten(2))
             # add the [CLS] token to the embed patch tokens
             cls_tokens = self.cls_token.expand(B, -1, -1)
             x = torch.cat((cls_tokens, x), dim=1)
