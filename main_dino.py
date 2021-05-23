@@ -236,7 +236,8 @@ def train_dino(args):
         args.out_dim,
         use_bn=args.use_bn_in_head,
         norm_last_layer=args.norm_last_layer,
-        use_segmap=args.inc_segmentation or args.inc_conv_features,
+        use_segmap=args.inc_segmentation,
+        use_conv_features=args.inc_conv_features,
     ))
     teacher = utils.MultiCropWrapper(
         teacher,

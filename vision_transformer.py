@@ -497,9 +497,10 @@ def vit_base(patch_size=16, **kwargs):
 
 
 class DINOHead(nn.Module):
-    def __init__(self, in_dim, out_dim, use_bn=False, norm_last_layer=True, nlayers=3, hidden_dim=2048, bottleneck_dim=256, use_segmap=False):
+    def __init__(self, in_dim, out_dim, use_bn=False, norm_last_layer=True, nlayers=3, hidden_dim=2048, bottleneck_dim=256, use_segmap=False, use_conv_features=False):
         super().__init__()
         self.use_segmap = use_segmap
+        self.use_conv_features = use_conv_features
         nlayers = max(nlayers, 1)
         if nlayers == 1:
             self.mlp = nn.Linear(in_dim, bottleneck_dim)
@@ -530,14 +531,14 @@ class DINOHead(nn.Module):
     def forward(self, x):
         if self.use_segmap:
             x, segmaps_0, segmaps_1, segmaps_2, segmaps_3 = x
+        elif self.use_conv_features:
+            x, segmaps = x
         x = self.mlp(x)
         x = nn.functional.normalize(x, dim=-1, p=2)
         x = self.last_layer(x)
         if self.use_segmap:
-            # print(f'******************************')
-            # print(f'In DINOHead: type(segmaps): {type(segmaps)}')
-            # print(f'In DINOHead: type(segmaps[0]): {type(segmaps[0])}')
-            # print(f'******************************')
             return x, segmaps_0, segmaps_1, segmaps_2, segmaps_3
+        elif self.use_conv_features:
+            return x, segmaps
         else:
             return x
