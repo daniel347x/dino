@@ -385,7 +385,9 @@ class VisionTransformer(nn.Module):
             x = self.cf_in2(x)
             x = self.cf_in3(x) # bs, 64, h, w
             bs, ch, h, w = x.shape
-            x = self.proj(x.flatten(2))
+            x = x.flatten(2)
+            print(f'***\nx.shape: {x.shape}\n***')
+            x = self.proj(x)
             # add the [CLS] token to the embed patch tokens
             cls_tokens = self.cls_token.expand(B, -1, -1)
             x = torch.cat((cls_tokens, x), dim=1)
