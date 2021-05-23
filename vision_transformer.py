@@ -372,7 +372,6 @@ class VisionTransformer(nn.Module):
 
         # add the [CLS] token to the embed patch tokens
         cls_tokens = self.cls_token.expand(B, -1, -1)
-        assert False, f'***\ncls_tokens.shape {cls_tokens.shape}\nx.shape {x.shape}\n***'
         x = torch.cat((cls_tokens, x), dim=1)
 
         # add positional encoding to each token
@@ -390,6 +389,7 @@ class VisionTransformer(nn.Module):
             x = self.proj(x)
             # add the [CLS] token to the embed patch tokens
             cls_tokens = self.cls_token.expand(bs, -1, -1)
+            print(f'***\ncls_tokens.shape {cls_tokens.shape}\nx.shape {x.shape}\n***')
             x = torch.cat((cls_tokens, x), dim=1)
             # No positional encoding
             x = self.pos_drop(x)
