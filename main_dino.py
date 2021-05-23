@@ -455,6 +455,7 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
 
             # segmentation SSL
             ncrops = len(images)
+            n_segmaps = 4 # trickiness with parallelization and return values in unpacked lists - for now, hardcode
             if args.inc_segmentation:
 
                 ##################################
@@ -469,7 +470,6 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
                 bs = len(images[0])
                 segmaps_ = []
                 # One per segmentation class
-                n_segmaps = 4 # trickiness with parallelization and return values in unpacked lists - for now, hardcode
                 # for segmap_ in segmaps_:
 
                 # First dimension was passed as ncrops by dataset, second dimension is this process's batch size in DDP
