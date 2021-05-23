@@ -265,24 +265,40 @@ class VisionTransformer(nn.Module):
     """ Vision Transformer """
     def __init__(self, img_size=[256,192], patch_size=16, in_chans=3, num_classes=0, embed_dim=768, depth=12,
                  num_heads=12, mlp_ratio=4., qkv_bias=False, qk_scale=None, drop_rate=0., attn_drop_rate=0.,
-                 drop_path_rate=0., norm_layer=nn.LayerNorm, include_segmap=False, use_segmap=False, **kwargs):
+                 drop_path_rate=0., norm_layer=nn.LayerNorm, include_segmap=False, use_segmap=False, include_conv_feature_space=False, use_conv_feature_space=False, **kwargs):
         super().__init__()
         self.num_features = self.embed_dim = embed_dim
 
         self.include_segmap = include_segmap # So that teacher and student have same parameters, even if unused by teacher
         self.use_segmap = use_segmap
         if self.use_segmap:
+            # 'include' segmap just means load the weights, so that, i.e, the teacher weights match the student
+            # 'use' segmap means actually run the segmentation - only the student does this, just as only the student has backprop through these weights
             self.include_segmap = True
 
-        self.patch_embed = PatchEmbed(
-            img_size=img_size, patch_size=patch_size, in_chans=in_chans, embed_dim=embed_dim)
-        num_patches = self.patch_embed.num_patches
-        self.num_patches = num_patches
-        self.num_patches_h = self.patch_embed.num_patches_h
-        self.num_patches_w = self.patch_embed.num_patches_w
+        self.include_conv_feature_space = include_conv_feature_space # So that teacher and student have same parameters, even if unused by teacher
+        self.use_conv_feature_space = use_conv_feature_space
+        if self.use_conv_feature_space:
+            # Ditto
+            self.include_conv_feature_space = True
+
+        if self.use_conv_feature_space:
+            self.cf_in1 = _conv_block(in_chans, 16, nn.ReLU(), 7, 1, 3)
+            self.cf_in2 = _conv_block(16, 32, nn.ReLU(), 5, 1, 2)
+            self.cf_in3 = _conv_block(32, 64, nn.ReLU(), 3, 1, 1)
+            self.num_patches = 64
+        else:
+            self.patch_embed = PatchEmbed(
+                img_size=img_size, patch_size=patch_size, in_chans=in_chans, embed_dim=embed_dim)
+            num_patches = self.patch_embed.num_patches
+            self.num_patches = num_patches
+            self.num_patches_h = self.patch_embed.num_patches_h
+            self.num_patches_w = self.patch_embed.num_patches_w
 
         self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
-        self.pos_embed = nn.Parameter(torch.zeros(1, num_patches + 1, embed_dim))
+
+        if self.use_conv_feature_space is False:
+            self.pos_embed = nn.Parameter(torch.zeros(1, num_patches + 1, embed_dim))
         self.pos_drop = nn.Dropout(p=drop_rate)
 
         dpr = [x.item() for x in torch.linspace(0, drop_path_rate, depth)]  # stochastic depth decay rule
@@ -296,10 +312,16 @@ class VisionTransformer(nn.Module):
         # Classifier head
         self.head = nn.Linear(embed_dim, num_classes) if num_classes > 0 else nn.Identity()
 
-        trunc_normal_(self.pos_embed, std=.02)
+        if self.use_conv_feature_space:
+            self.cf_out3 = _conv_trans_block(64, 32, nn.ReLU(), 2, 2, 0, 0)
+            self.cf_out2 = _conv_trans_block(32, 16, nn.ReLU(), 2, 2, 0, 0)
+            self.cf_out1 = _conv_trans_block(16, 8, nn.ReLU(), 2, 2, 0, 0)
+            self.cf_out0 = _conv_block(8, 4, nn.ReLU(), 1, 1, 0)
+        else:
+            trunc_normal_(self.pos_embed, std=.02)
         trunc_normal_(self.cls_token, std=.02)
-        self.apply(self._init_weights)
 
+        self.apply(self._init_weights)
 
         # Also output patchwise segmaps
         if self.include_segmap:
@@ -356,7 +378,19 @@ class VisionTransformer(nn.Module):
         return self.pos_drop(x)
 
     def forward(self, x):
-        x = self.prepare_tokens(x)
+        if self.use_conv_feature_space:
+            x = self.cf_in1(x)
+            x = self.cf_in2(x)
+            x = self.cf_in3(x) # bs, 64, h, w
+            bs, ch, h, w = x.shape
+            # add the [CLS] token to the embed patch tokens
+            cls_tokens = self.cls_token.expand(B, -1, -1)
+            x = torch.cat((cls_tokens, x), dim=1)
+            # No positional encoding
+            x = self.pos_drop(x)
+        else:
+            x = self.prepare_tokens(x)
+
         for blk in self.blocks:
             x = blk(x)
         x = self.norm(x)
@@ -382,6 +416,14 @@ class VisionTransformer(nn.Module):
                 # that was given as input to forward()
                 segmentations.append(segmentation)
             return vit_cls_output_logits, segmentations[0], segmentations[1], segmentations[2], segmentations[3]
+        elif self.use_conv_feature_space:
+            bs, ch, h, w = x.shape
+            x = x[:, 1:]
+            x = self.cf_out3(x)
+            x = self.cf_out1(x)
+            x = self.cf_out2(x)
+            x = self.cf_out0(x)
+            return vit_cls_output_logits, x
         else:
             return vit_cls_output_logits
 

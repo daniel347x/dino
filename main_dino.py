@@ -368,7 +368,7 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
     # for it, (images, _) in enumerate(metric_logger.log_every(data_loader, 10, header)):
     # for it, (inputs, segmaps, weights, boxes) in enumerate(metric_logger.log_every(data_loader, 10, header)):
 
-        if args.inc_segmentation:
+        if args.inc_segmentation or args.inc_conv_features:
             # segmentation SSL
             # convert inputs to PIL RGB image in BW
             # Collator is smart enough to return an extra dimension BEFORE the batch dimension when the dataset returns a list of items for one sample
@@ -450,6 +450,7 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
                 student_output = student(images)
 
             # segmentation SSL
+            ncrops = len(images)
             if args.inc_segmentation:
 
                 ##################################
@@ -461,7 +462,6 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
                 ##################################
                 student_output, segmaps_0, segmaps_1, segmaps_2, segmaps_3 = student_output
 
-                ncrops = len(images)
                 bs = len(images[0])
                 segmaps_ = []
                 # One per segmentation class
@@ -485,10 +485,47 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
                 segmaps_.append(segmap_)
 
                 # segmaps_ = segmaps_tmp_
+            elif args.inc_conv_features:
+                student_output, segmaps_ = student_output
+                segmaps_ = segmaps_.chunk(ncrops)
 
             loss = dino_loss(student_output, teacher_output, epoch)
             if DebugLabels:
                 print(f'loss: {loss}')
+
+            if args.inc_segmentation or args.inc_conv_features:
+                # segmentation SSL
+                lambda_seg = 250.
+                ncrops = len(segmaps)
+                seg_loss = None
+                for idx in range(ncrops):
+                    bs = len(segmaps[idx])
+                    for bidx in range(bs):
+                        for seg_class_idx in range(n_segmaps):
+                            if args.inc_segmentation:
+                                if seg_loss is None:
+                                    seg_loss  = lambda_seg * loss_func(weights[idx][bidx] * segmaps_[seg_class_idx][idx][bidx], weights[idx][bidx] * segmaps[idx][bidx][seg_class_idx])
+                                else:
+                                    seg_loss += lambda_seg * loss_func(weights[idx][bidx] * segmaps_[seg_class_idx][idx][bidx], weights[idx][bidx] * segmaps[idx][bidx][seg_class_idx])
+                            elif args.inc_conv_features:
+                                if seg_loss is None:
+                                    seg_loss  = lambda_seg * loss_func(weights[idx][bidx] * segmaps_[idx][bidx][seg_class_idx], weights[idx][bidx] * segmaps[idx][bidx][seg_class_idx])
+                                else:
+                                    seg_loss += lambda_seg * loss_func(weights[idx][bidx] * segmaps_[idx][bidx][seg_class_idx], weights[idx][bidx] * segmaps[idx][bidx][seg_class_idx])
+                        if DebugLabels:
+                            print(f'seg_loss: {seg_loss}')
+                            pil_img = transforms.ToPILImage()(images[idx][bidx])
+                            pil_img.save(f'/data/deepink/image_c{idx}_b{bidx}.png')
+                            pil_img = transforms.ToPILImage()(weights[idx][bidx])
+                            pil_img.save(f'/data/deepink/weights_c{idx}_b{bidx}.png')
+                            for seg_class_idx in range(n_segmaps):
+                                pil_img = transforms.ToPILImage()(segmaps[idx][bidx][seg_class_idx])
+                                pil_img.save(f'/data/deepink/segmaps_labels_c{idx}_b{bidx}_ch{seg_class_idx}.png')
+                                pil_img = transforms.ToPILImage()(segmaps_[seg_class_idx][idx][bidx])
+                                pil_img.save(f'/data/deepink/segmaps_preds_c{idx}_b{bidx}_ch{seg_class_idx}.png')
+                total_loss = loss + seg_loss
+            else:
+                total_loss = loss
 
         if not math.isfinite(loss.item()):
             print("Loss is {}, stopping training".format(loss.item()), force=True)
@@ -496,33 +533,6 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
 
 
 
-        if args.inc_segmentation:
-            # segmentation SSL
-            lambda_seg = 250.
-            ncrops = len(segmaps)
-            seg_loss = None
-            for idx in range(ncrops):
-                bs = len(segmaps[idx])
-                for bidx in range(bs):
-                    for seg_class_idx in range(n_segmaps):
-                        if seg_loss is None:
-                            seg_loss  = lambda_seg * loss_func(weights[idx][bidx] * segmaps_[seg_class_idx][idx][bidx], weights[idx][bidx] * segmaps[idx][bidx][seg_class_idx])
-                        else:
-                            seg_loss += lambda_seg * loss_func(weights[idx][bidx] * segmaps_[seg_class_idx][idx][bidx], weights[idx][bidx] * segmaps[idx][bidx][seg_class_idx])
-                    if DebugLabels:
-                        print(f'seg_loss: {seg_loss}')
-                        pil_img = transforms.ToPILImage()(images[idx][bidx])
-                        pil_img.save(f'/data/deepink/image_c{idx}_b{bidx}.png')
-                        pil_img = transforms.ToPILImage()(weights[idx][bidx])
-                        pil_img.save(f'/data/deepink/weights_c{idx}_b{bidx}.png')
-                        for seg_class_idx in range(n_segmaps):
-                            pil_img = transforms.ToPILImage()(segmaps[idx][bidx][seg_class_idx])
-                            pil_img.save(f'/data/deepink/segmaps_labels_c{idx}_b{bidx}_ch{seg_class_idx}.png')
-                            pil_img = transforms.ToPILImage()(segmaps_[seg_class_idx][idx][bidx])
-                            pil_img.save(f'/data/deepink/segmaps_preds_c{idx}_b{bidx}_ch{seg_class_idx}.png')
-            total_loss = loss + seg_loss
-        else:
-            total_loss = loss
 
 
 
