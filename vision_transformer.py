@@ -287,6 +287,7 @@ class VisionTransformer(nn.Module):
             self.cf_in1 = _conv_block(in_chans, 16, nn.ReLU(), 7, 2, 3) # 128 x 96
             self.cf_in2 = _conv_block(16, 32, nn.ReLU(), 5, 2, 2) # 64 x 48
             self.cf_in3 = _conv_block(32, 64, nn.ReLU(), 3, 2, 1) # 32 x 24
+            print(f'***\nembed_dim: {embed_dim}\n***')
             self.proj = Mlp(768, embed_dim)
             self.num_patches = 64
         else:
