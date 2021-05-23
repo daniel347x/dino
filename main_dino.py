@@ -218,9 +218,9 @@ def train_dino(args):
             include_segmap=args.inc_segmentation,
             use_segmap=args.inc_segmentation,
             include_conv_feature_space=args.inc_conv_features,
-            use_conv_feature_space=args.use_conv_feature_space,
+            use_conv_feature_space=args.inc_conv_features,
         )
-        teacher = vits.__dict__[args.arch](patch_size=args.patch_size, include_segmap=args.inc_segmentation, use_segmap=False, include_conv_feature_space=args.inc_conv_features, use_conv_feature_space=False)
+        teacher = vits.__dict__[args.arch](patch_size=args.patch_size, include_segmap=args.inc_segmentation, use_segmap=False, include_conv_feature_space=args.inc_conv_features, inc_conv_features=False)
         embed_dim = student.embed_dim
     # otherwise, we check if the architecture is in torchvision models
     elif args.arch in torchvision_models.__dict__.keys():
