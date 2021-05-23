@@ -499,7 +499,7 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
 
             if args.inc_segmentation or args.inc_conv_features:
                 # segmentation SSL
-                lambda_seg = 250.
+                lambda_seg = 2.
                 ncrops = len(segmaps)
                 seg_loss = None
                 for idx in range(ncrops):
