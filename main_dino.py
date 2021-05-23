@@ -154,7 +154,7 @@ def get_args_parser():
     parser.add_argument("--local_rank", default=0, type=int, help="Please ignore and do not set this argument.")
     parser.add_argument('--device', default="cuda", type=str, help='CUDA or CPU?')
     parser.add_argument('--inc_segmentation', type=utils.bool_flag, default=False, help="""Whether or not to incorporate an SSL segmentation loss on the student""")
-    parser.add_argument('--inc_conv_feature_space', type=utils.bool_flag, default=False, help="""Whether or not to incorporate an SSL segmentation via convolutional features on the student""")
+    parser.add_argument('--inc_conv_features', type=utils.bool_flag, default=False, help="""Whether or not to incorporate an SSL segmentation via convolutional features on the student""")
     parser.add_argument('--profile', type=utils.bool_flag, default=False, help="""Profile a single call to the model.""")
     return parser
 
@@ -172,11 +172,11 @@ def train_dino(args):
         args.global_crops_scale,
         args.local_crops_scale,
         args.local_crops_number,
-        to_pil=args.inc_segmentation or args.inc_conv_feature_space,
+        to_pil=args.inc_segmentation or args.inc_conv_features,
         target_img_size=[256,192],
     )
 
-    if args.inc_segmentation or args.inc_conv_feature_space:
+    if args.inc_segmentation or args.inc_conv_features:
         dataset = PageLoader(
             docs,
             anchors,
@@ -215,10 +215,10 @@ def train_dino(args):
         student = vits.__dict__[args.arch](
             patch_size=args.patch_size,
             drop_path_rate=0.1,  # stochastic depth
-            include_segmap=args.inc_segmentation or args.inc_conv_feature_space,
-            use_segmap=args.inc_segmentation or args.inc_conv_feature_space,
+            include_segmap=args.inc_segmentation or args.inc_conv_features,
+            use_segmap=args.inc_segmentation or args.inc_conv_features,
         )
-        teacher = vits.__dict__[args.arch](patch_size=args.patch_size, include_segmap=args.inc_segmentation or args.inc_conv_feature_space, use_segmap=False)
+        teacher = vits.__dict__[args.arch](patch_size=args.patch_size, include_segmap=args.inc_segmentation or args.inc_conv_features, use_segmap=False)
         embed_dim = student.embed_dim
     # otherwise, we check if the architecture is in torchvision models
     elif args.arch in torchvision_models.__dict__.keys():
@@ -234,7 +234,7 @@ def train_dino(args):
         args.out_dim,
         use_bn=args.use_bn_in_head,
         norm_last_layer=args.norm_last_layer,
-        use_segmap=args.inc_segmentation or args.inc_conv_feature_space,
+        use_segmap=args.inc_segmentation or args.inc_conv_features,
     ))
     teacher = utils.MultiCropWrapper(
         teacher,
