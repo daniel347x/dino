@@ -421,7 +421,8 @@ class VisionTransformer(nn.Module):
                 segmentations.append(segmentation)
             return vit_cls_output_logits, segmentations[0], segmentations[1], segmentations[2], segmentations[3]
         elif self.use_conv_feature_space:
-            bs, ch, h, w = x.shape
+            bs, ch, hw = x.shape
+            x = x.reshape(bs, ch, 32, 24)
             x = x[:, 1:]
             x = self.cf_out3(x)
             x = self.cf_out1(x)
