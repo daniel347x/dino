@@ -315,7 +315,7 @@ class VisionTransformer(nn.Module):
         self.head = nn.Linear(embed_dim, num_classes) if num_classes > 0 else nn.Identity()
 
         if self.include_conv_feature_space:
-            self.proj = Mlp(embed_dim, embed_dim, 32 * 24)
+            self.proj_out = Mlp(embed_dim, embed_dim, 32 * 24)
             self.cf_out3 = _conv_trans_block(64, 32, nn.ReLU(), 2, 2, 0, 0)
             self.cf_out2 = _conv_trans_block(32, 16, nn.ReLU(), 2, 2, 0, 0)
             self.cf_out1 = _conv_trans_block(16, 8, nn.ReLU(), 2, 2, 0, 0)
@@ -422,6 +422,7 @@ class VisionTransformer(nn.Module):
                 segmentations.append(segmentation)
             return vit_cls_output_logits, segmentations[0], segmentations[1], segmentations[2], segmentations[3]
         elif self.use_conv_feature_space:
+            x = self.proj_out(x)
             bs, ch, hw = x.shape
             x = x.reshape(bs, ch, 32, 24)
             x = x[:, 1:]
