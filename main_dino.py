@@ -40,7 +40,7 @@ from deepink.segmentation.config import MCv16_nma_b as config
 from deepink.segmentation.data_loaders import PageLoader
 from deepink.core.utils import load_pickle
 
-DOCS = 'testing'
+DOCS = 'training'
 testing_dataset_path = config['test_files']
 training_dataset_path = config['train_files']
 anchors = config['anchors_file']
