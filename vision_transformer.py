@@ -282,7 +282,7 @@ class VisionTransformer(nn.Module):
             # Ditto
             self.include_conv_feature_space = True
 
-        if self.use_conv_feature_space:
+        if self.include_conv_feature_space:
             # 256 x 192
             self.cf_in1 = _conv_block(in_chans, 16, nn.ReLU(), 7, 1, 3) # 128 x 96
             self.cf_in2 = _conv_block(16, 32, nn.ReLU(), 5, 1, 2) # 64 x 48
@@ -314,7 +314,7 @@ class VisionTransformer(nn.Module):
         # Classifier head
         self.head = nn.Linear(embed_dim, num_classes) if num_classes > 0 else nn.Identity()
 
-        if self.use_conv_feature_space:
+        if self.include_conv_feature_space:
             self.cf_out3 = _conv_trans_block(64, 32, nn.ReLU(), 2, 2, 0, 0)
             self.cf_out2 = _conv_trans_block(32, 16, nn.ReLU(), 2, 2, 0, 0)
             self.cf_out1 = _conv_trans_block(16, 8, nn.ReLU(), 2, 2, 0, 0)
