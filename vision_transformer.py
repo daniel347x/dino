@@ -427,8 +427,8 @@ class VisionTransformer(nn.Module):
             x = x.reshape(bs, ch, 32, 24)
             x = x[:, 1:]
             x = self.cf_out3(x)
-            x = self.cf_out1(x)
             x = self.cf_out2(x)
+            x = self.cf_out1(x)
             x = self.cf_out0(x)
             return vit_cls_output_logits, x
         else:
